@@ -1,6 +1,31 @@
 #! /bin/bash
 # Réseau virtuel de machines Linux
 
+function who {
+  
+}
+function rusers {
+  
+}
+function rhost {
+  
+}
+function connect {
+  
+}
+function su {
+  
+}
+function passwd {
+  
+}
+function finger {
+  
+}
+function write {
+  
+}
+
 if [ $1 = "-connect" ];then
   if [ $# = 3 ];then
     nom_machine = $2
