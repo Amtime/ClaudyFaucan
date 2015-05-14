@@ -10,3 +10,4 @@ if [ $1 = "-connect" ];then
 elif [ $1 = "-admin" ];then
 else echo "Préciser l'option -connect ou -admin"
 fi
+Bisous
