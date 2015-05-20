@@ -54,8 +54,19 @@ function afinger {
 function addcmd {
   for cmd in $@
   do
-    chemin=$(whereis -b $cmd|cut -f2 -d ' ')
-    cp -r $chemin $ADRESS$chemin
+    adresscmd=$(whereis -b $cmd|cut -f2 -d ':')
+    echo $adress
+    for j in $adresscmd
+    do
+      echo "$j $ADRESS$j"
+      mkdir -p $ADRESS$j
+      cp -r $j $ADRESS$j
+      for k in `ldd /usr/bin/ssh|cut -f2 -d '>'|cut -f1 -d '('`
+      do
+        mkdir -p $ADRESS$k
+        cp -R -L $k $ADRESS$j
+      done
+    done
   done
 }
 
@@ -64,7 +75,7 @@ function newuser {
     echo "L'utilisateur éxiste déjà"
   fi
   mkdir -p $ADRESS/bin $ADRESS/usr 
-  addcmd ls
+  addcmd ssh
 }
 
 
