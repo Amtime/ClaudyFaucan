@@ -5,12 +5,13 @@ function who {
 # Acces a l'ensemble des utilisateurs connectes sur une machine
 # Doit renvoyer nom/heure/date
 # Un meme utilisateur peut se connecter plusieurs fois sur une machine depuis diff. terminaux
-    echo 1
+# On passera le nom de la machine en paramètre
+  echo `grep $1 log|grep ".* connecté"|sed "s/.* \(.*\) \(.* .* .*\) \(.*:.*:.*\) .*/\1 est connecté depuis \3 le \2"/`
 }
 function rusers {
 # Liste des utilisateurs connectés sur le réseau
 # Doit renvoyer nom/heure/date
-    echo 1
+  echo `grep ".* connecté" 'log'|sed  "s/\(.*\) \(.*\) \(.* .* .*\) \(.*:.*:.*\) .*/\2 est connecté sur \1 depuis \4 le \3"/`
 }
 function rhost {
 # Renvoit la liste des machines rattachées au réseau virtuel  
@@ -18,7 +19,10 @@ function rhost {
 }
 function connect {
 # Se connecter a une machine du réseau
-    echo 1
+# On passera la nom de la machine et de l'utilisateur en paramètre
+ local machine=$1
+ local user=$2
+ virtualisation machine user
 }
 function su {
 # Changer d'utilisateur
@@ -73,30 +77,41 @@ function virtualisation {
   local machine=$1
   local user=$2
   local heure=`date|cut -f2 -d ','|cut -f1 -d '('|sed 's/ //'`
+  echo "Je suis sur la machine $machine avec l'utilisateur $user"
 
 # Gestion des logs
-
-  if [ -z  "`cat 'log'|grep -e $machine -e $user`" ];then
+  if [ -z "`grep $machine log && grep $user log`"  ];then
     echo "Création d'un new log"
-    log machine user
+    log $machine $user
   else
     echo "Actualisation des logs"
-    sed -i "s/\($machine $user .*\)..:..:.*/\1 ${heure}connecté/" log
-    echo `cat 'log'`
+    sed -i "s/\($machine $user .*\)..:..:.*/\1${heure}connecté/" log
   fi
   
 # Gestion du prompt
 
   while [ "$cmd" != "exit" ]
   do
-    echo "$2@$1 >"
-    read cmd
+    read -p "$2@$1 > " cmd  option
+    case $cmd in
+    who*)
+      who $machine;;
+    rusers*)
+      rusers;;
+    connect*)
+      echo "Je suis rentré dans connect" 
+      virtualisation $option $user;;
+    exit*)
+      ;;
+    *)
+      echo "La commande entrée n'est pas correcte.";;
+    esac
   done
 
 # Mis à jour des logs avant de quitter la session :
 # Passage de l'état connecté à l'état déconnecté
 
-  sed -i "s/\(machine user .* \)connecté/\1déconnecté/g" log
+  sed -i "s/\($machine $user .* \)connecté/\1déconnecté/g" log
 }
 
 function admin {
