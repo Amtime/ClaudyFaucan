@@ -22,11 +22,13 @@ function connect {
 # On passera la nom de la machine et de l'utilisateur en paramètre
  local machine=$1
  local user=$2
- virtualisation machine user
+ virtualisation $machine $user
 }
 function su {
 # Changer d'utilisateur
-    echo 1
+  local machine=$1
+  local user=$2
+  virtualisation $machine $user
 }
 function passwd {
 # Changement de mot de passe sur l'ensemble du réseau virtuel
@@ -39,7 +41,9 @@ function finger {
 function write {
 # Envoyer un message à un utilisateur connecté sur une machine du réseau
 # write nom_utilisateur@nom_machine message
-    echo 1
+  local dest=$1
+  local message=$2
+  `echo "$message" > "./Message/$dest"`
 }
 
 function host {
@@ -77,22 +81,50 @@ function virtualisation {
   local machine=$1
   local user=$2
   local heure=`date|cut -f2 -d ','|cut -f1 -d '('|sed 's/ //'`
+  local flag=0
   echo "Je suis sur la machine $machine avec l'utilisateur $user"
 
 # Gestion des logs
-  if [ -z "`grep $machine log && grep $user log`"  ];then
+  
+# Vérification si le fichier est vide, car sinon on ne rentre pas 
+# dans la boucle while
+
+  if [ -z "`cat log`" ];then
+    local flag=0
+  fi
+
+# On vérifie ligne à ligne si l'utilisateur a déjà un log
+# Si c'est le cas le flag est à 1
+
+  while read line 
+  do
+    if [ -n "`echo $line|grep $machine|grep $user`" ];then
+      local flag=1
+    fi
+  done < log
+
+# Si le flag est à 0 on crée un nouveau log, sinon on actualise
+
+  if [ "$flag" -eq "0" ];then
     echo "Création d'un new log"
     log $machine $user
   else
     echo "Actualisation des logs"
     sed -i "s/\($machine $user .*\)..:..:.*/\1${heure}connecté/" log
   fi
+  local flag=0
   
 # Gestion du prompt
 
   while [ "$cmd" != "exit" ]
   do
-    read -p "$2@$1 > " cmd  option
+# Vérification si aucun message n'a été reçu
+    if [ -n  "`ls './Message'|grep "^$user@$machine$"`" ];then
+      echo "Vous avez un message : `cat ./Message/$user@$machine`"
+      `rm "./Message/$user@$machine"`
+    fi
+
+    read -p "$2@$1 > " cmd  arg1 arg2
     case $cmd in
     who*)
       who $machine;;
@@ -100,7 +132,13 @@ function virtualisation {
       rusers;;
     connect*)
       echo "Je suis rentré dans connect" 
-      virtualisation $option $user;;
+      connect $arg1 $user;;
+    su*)
+      echo "Je suis rentré dans su"
+      su $machine $arg1;;
+    write*)
+      echo "Je suis rentré dans write"
+      write $arg1 $arg2;;
     exit*)
       ;;
     *)
@@ -126,11 +164,20 @@ function admin {
 
 # DEBUT DU SCRIPT
 
-# Création du fichie log si ce dernier n'éxiste pas
+# Création du fichie log et du répertoire à message si ces derniers 
+# n'éxistent pas
 
-if [ ! -w log ];then
+if [ ! -w "log" ];then
     echo "Création du fichier log"
+    touch 'log'
 fi
+
+if [ ! -r "Message" ];then
+  echo "Création du répertoire à message"
+  mkdir 'Messages'
+fi
+
+# Détection du mode invoqué 
 
 if [ "$1" = "-connect" ];then
   if [ "$#" = "3" ];then
