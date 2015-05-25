@@ -26,20 +26,23 @@ function connect {
 }
 function su {
 # Changer d'utilisateur
+# On passera le nom de la machine et de l'utilisateur en paramètre
   local machine=$1
   local user=$2
   virtualisation $machine $user
 }
 function passwd {
 # Changement de mot de passe sur l'ensemble du réseau virtuel
-# On passera l'utilisateur et le mdp en paramètre
+# On passera l'utilisateur et le mot de passe en paramètre
   local user=$1
   local passwd=$2
   echo "Je suis dans passwd"
+# On cherche à quelle ligne correspond l'utilisateur dont
+# on veut changer le mot de passe puis on le modifie
   while read line
   do
     if [ -n "`echo $line|grep $user`"];then
-      sed -i "s/\(^$user \).*$line$/\1$passwd/" passwd
+      sed -i "s/^\($user \).*$/\1$passwd/" passwd
       echo "Mot de passe changé"
     fi
   done < passwd
@@ -54,6 +57,10 @@ function write {
   local dest=$1
   local message=$2
   `echo "$message" > "./Message/$dest"`
+
+
+# /!\ On doit faire un test préalable pour voir si la personne est connectée #######################################
+
 }
 
 function host {
@@ -62,6 +69,9 @@ function host {
 }
 function users {
 # Admin ajoute/enlève utilisateur/droits/mdp
+# La "sous commande" sera passée en premier paramètre
+# Le case redigira vers la fonction appropriée
+# Le nom d'utilisateur et le mdp seront passé en paramètre
   local cmd=$1
   local user=$2
   echo "hello"
@@ -87,17 +97,24 @@ function afinger {
     echo 1
 }
 
-function add {
+function right {
+# Gère la distribution des droits 
+    echo 1
+}
 
+function add {
+# Permet l'ajout d'un utilisateur avec son mdp si cet
+# utilisateur n'est pas encore dans la base de donnée
   local flag=0
   local user=$1
   local mdp=$2
+# Vérification de l'absence de l'utilisateur
   while read line
   do
     a=`echo $line|grep $user`
     echo $a
     if [ -n "a" ];then 
-      echo "Je suis dans la if"
+      echo "Je suis dans le if"
       local flag=1
     fi
   done < passwd
@@ -107,10 +124,16 @@ function add {
   else
     echo "Cet utilisateur éxiste déjà"
   fi
+
+
+#  /!\ il faut compléter cette fonction avec l'attribution des droits par défaut ########################################
+
+
 }
 
 function del {
-
+# Permet la suppression d'un utilisateur de la base de donnée
+# On passera le nom d'utilisateur en paramètre
   local $user
   while read line 
   do
@@ -120,6 +143,9 @@ function del {
       sed -i "s/^$user .*$//" passwd
     fi
  done < passwd   
+
+#   /!\ De même que pour add #####################################################################################
+
 }
 
 function log {
@@ -134,11 +160,15 @@ function log {
 }
 
 function checkpasswd {
-  
+# Permet de vérifier sur le mdp fourni est correct
+# Retourne 0 si le mdp est correct, 1 sinon
+# On passera l'utilisateur puis le mdp en paramètre
   local flag=1
   local user=$1
   echo "Veuillez entrer votre mot de passe"
   read -p "Mot de pass : " passwd
+# On Cherche l'utilisateur ligne par ligne puis
+# Une fois la ligne correspondante on vérifie le mdp
   while read line
   do
     if [ -n "`echo $line|grep $user`"];then
@@ -241,8 +271,13 @@ function virtualisation {
 }
 
 function admin {
-  local cmd=null
+# Gestion du prompt admin
 
+
+# /!\ Création d'un compte admin par défaut s'il n'en éxiste ######################
+# pas déjà ou un solution alternative #############################################
+
+  local cmd=null
   while [ "$cmd" != "exit" ]
   do
     read -p "rvsh > " cmd arg1 arg2 arg3
@@ -265,8 +300,8 @@ function admin {
 
 # DEBUT DU SCRIPT
 
-# Création du fichie log et du répertoire à message si ces derniers 
-# n'éxistent pas
+# Création du fichie log, passwd et du répertoire à 
+# message si ces derniers n'éxistent pas
 
 if [ ! -w 'log' ];then
     echo "Création du fichier log"
@@ -298,7 +333,6 @@ if [ "$1" = "-connect" ];then
   else 
     echo "Préciser nom machine et nom utilisateur"  
   fi
-  
 elif [ "$1" = "-admin" ];then
   admin
 else
