@@ -32,7 +32,17 @@ function su {
 }
 function passwd {
 # Changement de mot de passe sur l'ensemble du réseau virtuel
-    echo 1
+# On passera l'utilisateur et le mdp en paramètre
+  local user=$1
+  local passwd=$2
+  echo "Je suis dans passwd"
+  while read line
+  do
+    if [ -n "`echo $line|grep $user`"];then
+      sed -i "s/\(^$user \).*$line$/\1$passwd/" passwd
+      echo "Mot de passe changé"
+    fi
+  done < passwd
 }
 function finger {
 # Renvoit des éléments complémentaires sur l'utilisateur  
@@ -52,11 +62,64 @@ function host {
 }
 function users {
 # Admin ajoute/enlève utilisateur/droits/mdp
-    echo 1
+  local cmd=$1
+  local user=$2
+  echo "hello"
+  echo "cmd : $cmd"
+  if [ "$cmd" = "passwd" ];then
+    echo "Je suis rentré dans passwd de users"
+    local mdp=$3
+    echo "user : $user, mdp : $mdp"
+    passwd $user $mdp
+  elif [ "$cmd" = "right" ];then
+    right $user
+  elif [ "$cmd" = "add" ];then
+    local mdp=$3
+    add $user $mdp
+  elif [ "$cmd" = "del" ];then
+    del $user
+  else
+    echo "Argument de users invalide"
+  fi
 }
 function afinger {
 # Admin renseigne sur un utilisateur, accès avec finger
     echo 1
+}
+
+function add {
+
+  local flag=0
+  local user=$1
+  local mdp=$2
+  while read line
+  do
+    a=`echo $line|grep $user`
+    echo $a
+    if [ -n "a" ];then 
+      echo "Je suis dans la if"
+      local flag=1
+    fi
+  done < passwd
+    
+  if [ "$flag" -eq '0' ];then
+    echo "$user $mdp" >> passwd
+  else
+    echo "Cet utilisateur éxiste déjà"
+  fi
+}
+
+function del {
+
+  local $user
+  while read line 
+  do
+    echo "Je suis rentré dans le while de del"
+    if [ -n "`echo $line|grep $user`" ];then
+        echo "Je suis rentré dans le if de del"
+      sed -i "s/^$user .*$//" passwd
+    fi
+ done < passwd   
 }
 
 function log {
@@ -68,6 +131,28 @@ function log {
   local heure=`date|cut -f2 -d ','|cut -f1 -d '('|sed 's/ //g'`
   local date=`date|cut -f1 -d ','|sed 's/\(.*\) \(.*\) \(.*\) \(.*\)/\2 \3 \4/'`
   echo "$machine $user $date $heure connecté">>log
+}
+
+function checkpasswd {
+  
+  local flag=1
+  local user=$1
+  echo "Veuillez entrer votre mot de passe"
+  read -p "Mot de pass : " passwd
+  while read line
+  do
+    if [ -n "`echo $line|grep $user`"];then
+      if [ -n "`echo $line|grep $passwd`" ];then
+        flag=0
+      fi
+    fi
+  done < passwd
+    
+  if [ $flag -eq '0' ];then
+    return 0
+  else
+    return 1
+  fi
 }
 
 function virtualisation {
@@ -124,7 +209,7 @@ function virtualisation {
       `rm "./Message/$user@$machine"`
     fi
 
-    read -p "$2@$1 > " cmd  arg1 arg2
+    read -p "$2@$1 > " cmd arg1 arg2
     case $cmd in
     who*)
       who $machine;;
@@ -136,6 +221,9 @@ function virtualisation {
     su*)
       echo "Je suis rentré dans su"
       su $machine $arg1;;
+    passwd*)
+      echo "Je suis rentré dans passwd"
+      passwd $user $arg1;;
     write*)
       echo "Je suis rentré dans write"
       write $arg1 $arg2;;
@@ -157,8 +245,21 @@ function admin {
 
   while [ "$cmd" != "exit" ]
   do
-    echo "rvsh >"
-    read cmd
+    read -p "rvsh > " cmd arg1 arg2 arg3
+    echo $cmd
+    case $cmd in
+    host*)
+      host $arg1 $arg2;;
+    users*)
+      echo "Je suis rentré dans users"
+      users $arg1 $arg2 $arg3;;
+    afinger*)
+      afinger;;
+    exit*)
+      exit;;
+    *)
+      echo "La commande entrée n'est pas correcte.";;
+    esac
   done
 }
 
@@ -167,14 +268,19 @@ function admin {
 # Création du fichie log et du répertoire à message si ces derniers 
 # n'éxistent pas
 
-if [ ! -w "log" ];then
+if [ ! -w 'log' ];then
     echo "Création du fichier log"
     touch 'log'
 fi
 
+if [ ! -w 'passwd' ];then
+    echo "Création du fichier passwd"
+    touch 'passwd'
+fi
+
 if [ ! -r "Message" ];then
   echo "Création du répertoire à message"
-  mkdir 'Messages'
+  mkdir 'Message'
 fi
 
 # Détection du mode invoqué 
@@ -183,12 +289,18 @@ if [ "$1" = "-connect" ];then
   if [ "$#" = "3" ];then
     MACHINE=$2
     USER=$3
-    virtualisation $MACHINE $USER
+    checkpasswd $USER
+    if [ $? -eq '0' ];then
+      virtualisation $MACHINE $USER
+    else
+        echo "Problème d'autentification : mot de passe incorrect"
+    fi
   else 
     echo "Préciser nom machine et nom utilisateur"  
   fi
-  elif [ "$1" = "-admin" ];then
-      admin
-  else
-    echo "Préciser l'option -connect ou -admin"
+  
+elif [ "$1" = "-admin" ];then
+  admin
+else
+  echo "Préciser l'option -connect ou -admin"
 fi
