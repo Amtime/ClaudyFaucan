@@ -6,30 +6,47 @@ function who {
 # Doit renvoyer nom/heure/date
 # Un meme utilisateur peut se connecter plusieurs fois sur une machine depuis diff. terminaux
 # On passera le nom de la machine en paramètre
-  echo `grep $1 log|grep ".* connecté"|sed "s/.* \(.*\) \(.* .* .*\) \(.*:.*:.*\) .*/\1 est connecté depuis \3 le \2"/`
+  local machine=$1
+  echo "`grep $machine log|awk '/^.* connecté.*$/{print $2," est connecté depuis "$6" le "$3" "$4" "$5}' `"
+  
 }
 function rusers {
 # Liste des utilisateurs connectés sur le réseau
 # Doit renvoyer nom/heure/date
-  echo `grep ".* connecté" 'log'|sed  "s/\(.*\) \(.*\) \(.* .* .*\) \(.*:.*:.*\) .*/\2 est connecté sur \1 depuis \4 le \3"/`
+  echo "`awk '/^.* connecté.*$/{print $2," est connecté sur "$1" depuis "$6" le "$3" "$4" "$5}' log`"
 }
 function rhost {
 # Renvoit la liste des machines rattachées au réseau virtuel  
-    echo 1
+  echo "La liste des machines du réseau : "
+  echo "`cat vlan`"
 }
 function connect {
-# Se connecter a une machine du réseau
+# Se connecter a une autre machine du réseau
 # On passera la nom de la machine et de l'utilisateur en paramètre
- local machine=$1
- local user=$2
- virtualisation $machine $user
+  local machine=$1
+  local user=$2
+  checkright $machine $user
+  if [ "$?" -eq '2' ];then
+    virtualisation $machine $user
+  else
+    echo "Problème de droit d'accès"
+  fi
 }
 function su {
-# Changer d'utilisateur
+# Changer d'utilisateur mais pas de machine
 # On passera le nom de la machine et de l'utilisateur en paramètre
   local machine=$1
   local user=$2
-  virtualisation $machine $user
+  checkpasswd $user
+    if [ $? -eq '2' ];then
+      virtualisation $machine $user
+    else
+        echo "Problème d'autentification : mot de passe incorrect"
+    fi
+
+# /!\ Vérifier que la machine est bien accessible, et que les paramètresi ############################################
+# soient bien rentré (2 params) "###################################################################################"
+
 }
 function passwd {
 # Changement de mot de passe sur l'ensemble du réseau virtuel
@@ -65,28 +82,52 @@ function write {
 
 function host {
 # Admin ajoute/enlève machine au réseau  
-    echo 1
+# On passe la commande et la machine en paramètre
+#
+  local cmd=$1
+  local machine=$2
+  if [ "$cmd" = "add" ];then
+    if [ -z "`grep $machine vlan`" ];then
+      echo $machine >> vlan
+      echo "Création de la machine $machine"
+    else
+      echo "La machine est déjà dans le vlan"
+    fi
+  elif [ "$cmd" = "del" ];then
+    if [ -n "`grep $machine vlan`" ];then
+      sed -i "s/^$machine$//" vlan
+    else
+      echo "La machine n'est pas dans le vlan"
+    fi
+  else
+    echo "La commande est incorrecte"
+  fi
 }
 function users {
 # Admin ajoute/enlève utilisateur/droits/mdp
 # La "sous commande" sera passée en premier paramètre
-# Le case redigira vers la fonction appropriée
+# Le if redirigera vers la fonction appropriée
 # Le nom d'utilisateur et le mdp seront passé en paramètre
   local cmd=$1
-  local user=$2
   echo "hello"
   echo "cmd : $cmd"
   if [ "$cmd" = "passwd" ];then
     echo "Je suis rentré dans passwd de users"
+    local user=$2
     local mdp=$3
     echo "user : $user, mdp : $mdp"
     passwd $user $mdp
   elif [ "$cmd" = "right" ];then
+    local opt=$2
+    local machine=$3
+    local user=$4
     right $user
   elif [ "$cmd" = "add" ];then
+    local user=$2
     local mdp=$3
     add $user $mdp
   elif [ "$cmd" = "del" ];then
+    local user=$2
     del $user
   else
     echo "Argument de users invalide"
@@ -99,7 +140,9 @@ function afinger {
 
 function right {
 # Gère la distribution des droits 
-    echo 1
+  local opt=$2
+  local machine=$3
+  local user=$4
 }
 
 function add {
@@ -108,12 +151,13 @@ function add {
   local flag=0
   local user=$1
   local mdp=$2
+  echo "user : $user" 
 # Vérification de l'absence de l'utilisateur
   while read line
   do
     a=`echo $line|grep $user`
     echo $a
-    if [ -n "a" ];then 
+    if [ -n "`echo $line|grep $user`" ];then 
       echo "Je suis dans le if"
       local flag=1
     fi
@@ -121,6 +165,7 @@ function add {
     
   if [ "$flag" -eq '0' ];then
     echo "$user $mdp" >> passwd
+    echo "Utilisateur créé"
   else
     echo "Cet utilisateur éxiste déjà"
   fi
@@ -140,7 +185,7 @@ function del {
     echo "Je suis rentré dans le while de del"
     if [ -n "`echo $line|grep $user`" ];then
         echo "Je suis rentré dans le if de del"
-      sed -i "s/^$user .*$//" passwd
+      sed -i "s/^.*$//" passwd
     fi
  done < passwd   
 
@@ -159,6 +204,15 @@ function log {
   echo "$machine $user $date $heure connecté">>log
 }
 
+function checkright {
+# La fonction doit retourner 2 si l'utilisateur à les droits
+# d'accès pour la machines
+
+  local machine=$1
+  local user=$2
+
+  }
+
 function checkpasswd {
 # Permet de vérifier sur le mdp fourni est correct
 # Retourne 0 si le mdp est correct, 1 sinon
@@ -171,18 +225,13 @@ function checkpasswd {
 # Une fois la ligne correspondante on vérifie le mdp
   while read line
   do
-    if [ -n "`echo $line|grep $user`"];then
+    if [ -n "`echo $line|grep $user`" ];then
       if [ -n "`echo $line|grep $passwd`" ];then
-        flag=0
+        return 2
       fi
     fi
   done < passwd
     
-  if [ $flag -eq '0' ];then
-    return 0
-  else
-    return 1
-  fi
 }
 
 function virtualisation {
@@ -273,21 +322,18 @@ function virtualisation {
 function admin {
 # Gestion du prompt admin
 
-
-# /!\ Création d'un compte admin par défaut s'il n'en éxiste ######################
-# pas déjà ou un solution alternative #############################################
-
+  checkpasswd admin
   local cmd=null
   while [ "$cmd" != "exit" ]
   do
-    read -p "rvsh > " cmd arg1 arg2 arg3
+    read -p "rvsh > " cmd arg1 arg2 arg3 arg4
     echo $cmd
     case $cmd in
     host*)
       host $arg1 $arg2;;
     users*)
       echo "Je suis rentré dans users"
-      users $arg1 $arg2 $arg3;;
+      users $arg1 $arg2 $arg3 $arg4;;
     afinger*)
       afinger;;
     exit*)
@@ -300,8 +346,8 @@ function admin {
 
 # DEBUT DU SCRIPT
 
-# Création du fichie log, passwd et du répertoire à 
-# message si ces derniers n'éxistent pas
+# Création du fichie log, passwd, vlan
+# et du répertoire à message si ces derniers n'éxistent pas
 
 if [ ! -w 'log' ];then
     echo "Création du fichier log"
@@ -313,9 +359,34 @@ if [ ! -w 'passwd' ];then
     touch 'passwd'
 fi
 
+if [ ! -w 'vlan' ];then
+    echo "Création du fichier vlan"
+    touch 'vlan'
+fi
+
 if [ ! -r "Message" ];then
   echo "Création du répertoire à message"
   mkdir 'Message'
+fi
+
+# Création des comptes et machines par défaut
+
+# /!\ Ajouter les droits par défaut
+
+
+if [ -z "`cat passwd`" ];then
+  echo "user pass" >> passwd
+  echo "Création du compte utilisateur par défaut"
+fi
+
+if [ -z "`cat vlan`" ];then
+  echo "machine" >> vlan
+  echo "Création de la machine par défaut"
+fi
+
+if [ -z "`grep admin passwd`" ];then
+  echo "admin admin" >> passwd
+  echo "Création du compte admin par défaut"
 fi
 
 # Détection du mode invoqué 
@@ -324,17 +395,50 @@ if [ "$1" = "-connect" ];then
   if [ "$#" = "3" ];then
     MACHINE=$2
     USER=$3
-    checkpasswd $USER
-    if [ $? -eq '0' ];then
-      virtualisation $MACHINE $USER
-    else
-        echo "Problème d'autentification : mot de passe incorrect"
+    checkright $MACHINE $USER
+    if [ "$?" -eq '2' ];then
+      checkpasswd $USER
+      if [ "$?" -eq '2' ];then
+        virtualisation $MACHINE $USER
+      else
+          echo "Problème d'autentification : mot de passe incorrect"
+      fi
     fi
   else 
-    echo "Préciser nom machine et nom utilisateur"  
+    echo "Préciser nom machine puis nom utilisateur"  
   fi
 elif [ "$1" = "-admin" ];then
   admin
 else
   echo "Préciser l'option -connect ou -admin"
 fi
+
+# Ajout de la fonctionnalité des droits d'accès : checkright, right (sous
+# fonction de rusers )
+
+# Ajout d'un -help dans les prompts ou commandes complexes
+
+# who ==> mettre par défaut la machine actuelle, mais rajouter
+# la possibilité de regarder sur une autre machine
+
+# who et rusers faire le cas où personne n'est connecté dans les
+# fonctionso
+
+# comparer les hashs plutôt que les mdp en clair sur le dossier passwd
+
+# Il faudrait créer une fonction qui enlève les lignes vides dans 
+# les fichiers pour nettoyer les fichiers comme passwd et machines
+# où on supprime sauvagement en remplaçant tout par des blancs
+
+# On pourrait rajouter l'envoyeur du message
+
+# Faire en sorte que quand machine et user sont passés en paramètre
+# machine soit toujours le premier paramètre pour moins d'ambiguïté
+# password entre autre déroge à la règle
+
+# fonction users du mode admin très complexe, vérifier sa parfaite 
+# fonctionnalité
+
+# faire une fonction qui filtre les caractère spéciaux qui 
+# pourraient être rentré dans les mdp et les noms d'utilisateurs
+# et pourrait faire buguer la saisie genre " ' $ ect
