@@ -58,7 +58,7 @@ function passwd {
 # on veut changer le mot de passe puis on le modifie
   while read line
   do
-    if [ -n "`echo $line|grep $user`"];then
+    if [ -n "`echo $line|grep $user`" ];then
       sed -i "s/^\($user \).*$/\1$passwd/" passwd
       echo "Mot de passe changé"
     fi
@@ -95,7 +95,8 @@ function host {
     fi
   elif [ "$cmd" = "del" ];then
     if [ -n "`grep $machine vlan`" ];then
-      sed -i "s/^$machine$//" vlan
+      sed -i "s/^$machine .*$//" vlan
+      echo "$machine supprimée"
     else
       echo "La machine n'est pas dans le vlan"
     fi
@@ -118,10 +119,11 @@ function users {
     echo "user : $user, mdp : $mdp"
     passwd $user $mdp
   elif [ "$cmd" = "right" ];then
+    echo "Je suis rentré dans right"
     local opt=$2
     local machine=$3
     local user=$4
-    right $user
+    right $opt $machine $user
   elif [ "$cmd" = "add" ];then
     local user=$2
     local mdp=$3
@@ -140,9 +142,32 @@ function afinger {
 
 function right {
 # Gère la distribution des droits 
-  local opt=$2
-  local machine=$3
-  local user=$4
+  local opt=$1
+  local machine=$2
+  local user=$3
+  echo $opt
+# On regarde si on veut ajouter ou retirer des droits
+  if [ "$opt" = "add" ];then
+    checkright $machine $user
+# On vérifie que l'utilisateur n'a pas déjà le droit à ajouter
+    if [ "$?" -ne '2' ];then
+      sed -i "s/^\($machine .*\)$/\1 $user/" vlan
+      echo "Ajout du droit d'accès de $user sur $machine"
+    else
+      echo "Cet utilisateur a déjà le droit d'accès à $machine"
+    fi
+  elif [ "$opt" = "del" ];then
+# On vérifie que l'utilisateur a bien les droits à retirer
+    checkright $machine $user
+    if [ "$?" -eq '2' ];then
+      sed -i "s/^\($machine .*\)$user\(.*\)$/\1\2/" vlan
+      echo "Suppression du droit d'accès de $user sur $machine"
+    else
+      echo "Cet utilisateur n'a pas encore le droit d'accès à $machine"
+    fi
+  else
+    echo "Commande erronée : users right add/del user machine"
+  fi
 }
 
 function add {
@@ -158,6 +183,7 @@ function add {
     a=`echo $line|grep $user`
     echo $a
     if [ -n "`echo $line|grep $user`" ];then 
+# L'utilisateur éxiste déjà si on rentre dans ce if
       echo "Je suis dans le if"
       local flag=1
     fi
@@ -169,11 +195,6 @@ function add {
   else
     echo "Cet utilisateur éxiste déjà"
   fi
-
-
-#  /!\ il faut compléter cette fonction avec l'attribution des droits par défaut ########################################
-
-
 }
 
 function del {
@@ -188,9 +209,6 @@ function del {
       sed -i "s/^.*$//" passwd
     fi
  done < passwd   
-
-#   /!\ De même que pour add #####################################################################################
-
 }
 
 function log {
@@ -210,7 +228,15 @@ function checkright {
 
   local machine=$1
   local user=$2
-
+  echo "machine : $machine, user : $user"
+  echo "Vérification de vos droits sur la machine demandée"
+  while read line 
+  do
+    echo $line
+    if [ -n "`echo $line|grep $machine|grep $user`" ];then
+        return 2
+    fi
+  done < vlan
   }
 
 function checkpasswd {
@@ -371,17 +397,14 @@ fi
 
 # Création des comptes et machines par défaut
 
-# /!\ Ajouter les droits par défaut
-
-
 if [ -z "`cat passwd`" ];then
   echo "user pass" >> passwd
   echo "Création du compte utilisateur par défaut"
 fi
 
 if [ -z "`cat vlan`" ];then
-  echo "machine" >> vlan
-  echo "Création de la machine par défaut"
+  echo "machine user" >> vlan
+  echo "Création de la machine par défaut et de son droit d'accès par l'utilisateur par défaut"
 fi
 
 if [ -z "`grep admin passwd`" ];then
@@ -396,13 +419,17 @@ if [ "$1" = "-connect" ];then
     MACHINE=$2
     USER=$3
     checkright $MACHINE $USER
-    if [ "$?" -eq '2' ];then
+    if [ "$?" -eq '2' ];then
+      echo "Vous avez le droit de vous connecter"
       checkpasswd $USER
       if [ "$?" -eq '2' ];then
+        echo "Mot de passe correct, accès au prompt"
         virtualisation $MACHINE $USER
       else
           echo "Problème d'autentification : mot de passe incorrect"
       fi
+    else
+      echo "Vous n'avez pas le droit de vous connecter"
     fi
   else 
     echo "Préciser nom machine puis nom utilisateur"  
@@ -412,9 +439,6 @@ elif [ "$1" = "-admin" ];then
 else
   echo "Préciser l'option -connect ou -admin"
 fi
-
-# Ajout de la fonctionnalité des droits d'accès : checkright, right (sous
-# fonction de rusers )
 
 # Ajout d'un -help dans les prompts ou commandes complexes
 
@@ -442,3 +466,5 @@ fi
 # faire une fonction qui filtre les caractère spéciaux qui 
 # pourraient être rentré dans les mdp et les noms d'utilisateurs
 # et pourrait faire buguer la saisie genre " ' $ ect
+
+# Problème avec les logs de l'utilisateur par défaut
