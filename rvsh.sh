@@ -37,13 +37,18 @@ function su {
 # On passera le nom de la machine et de l'utilisateur en paramètre
   local machine=$1
   local user=$2
-  checkpasswd $user
-    if [ $? -eq '2' ];then
-      virtualisation $machine $user
-    else
+  checkright $machine $user
+  if [ "$?" -eq '2' ]
+    checkpasswd $user
+      if [ $? -eq '2' ];then
+        virtualisation $machine $user
+      else
         echo "Problème d'autentification : mot de passe incorrect"
-    fi
-
+      fi
+  else 
+    echo "Problème de droit d'accès."
+  fi
+  
 # /!\ Vérifier que la machine est bien accessible, et que les paramètresi ############################################
 # soient bien rentré (2 params) "###################################################################################"
 
