@@ -2,7 +2,7 @@
 # Réseau virtuel de machines Linux
 
 function who {
-# Acces a l'ensemble des utilisateurs connectes sur une machine
+# Acces a l'ensemble des utilisateurs connectes sur la machine
 # Doit renvoyer nom/heure/date
 # Un meme utilisateur peut se connecter plusieurs fois sur une machine depuis diff. terminaux
 # On passera le nom de la machine en paramètre
@@ -38,14 +38,14 @@ function su {
   local machine=$1
   local user=$2
   checkright $machine $user
-  if [ "$?" -eq '2' ]
+  if [ "$?" -eq '2' ];then
     checkpasswd $user
       if [ $? -eq '2' ];then
         virtualisation $machine $user
       else
         echo "Problème d'autentification : mot de passe incorrect"
       fi
-  else 
+  else
     echo "Problème de droit d'accès."
   fi
   
@@ -237,11 +237,17 @@ function checkright {
   echo "Vérification de vos droits sur la machine demandée"
   while read line 
   do
-    echo $line
     if [ -n "`echo $line|grep $machine|grep $user`" ];then
         return 2
     fi
   done < vlan
+  echo "Salut"
+  echo "`grep $machine vlan`"
+  if [ -z "`grep $machine vlan`" ];then
+    echo "Je suis dans if"
+    return 1
+  fi
+  echo $?
   }
 
 function checkpasswd {
@@ -251,13 +257,13 @@ function checkpasswd {
   local flag=1
   local user=$1
   echo "Veuillez entrer votre mot de passe"
-  read -p "Mot de pass : " passwd
+  read -p "Mot de passe : " passwd
 # On Cherche l'utilisateur ligne par ligne puis
 # Une fois la ligne correspondante on vérifie le mdp
   while read line
   do
-    if [ -n "`echo $line|grep $user`" ];then
-      if [ -n "`echo $line|grep $passwd`" ];then
+    if [ -n "`echo $line|grep "^$user .*$"`" ];then
+      if [ -n "`echo $line|grep "^.* $passwd .*$"`" ];then
         return 2
       fi
     fi
@@ -354,25 +360,29 @@ function admin {
 # Gestion du prompt admin
 
   checkpasswd admin
-  local cmd=null
-  while [ "$cmd" != "exit" ]
-  do
-    read -p "rvsh > " cmd arg1 arg2 arg3 arg4
-    echo $cmd
-    case $cmd in
-    host*)
-      host $arg1 $arg2;;
-    users*)
-      echo "Je suis rentré dans users"
-      users $arg1 $arg2 $arg3 $arg4;;
-    afinger*)
-      afinger;;
-    exit*)
-      exit;;
-    *)
-      echo "La commande entrée n'est pas correcte.";;
-    esac
-  done
+  if [ "$?" -eq '2' ];then
+    local cmd=null
+    while [ "$cmd" != "exit" ]
+    do
+      read -p "rvsh > " cmd arg1 arg2 arg3 arg4
+      echo $cmd
+      case $cmd in
+      host*)
+        host $arg1 $arg2;;
+      users*)
+        echo "Je suis rentré dans users"
+        users $arg1 $arg2 $arg3 $arg4;;
+      afinger*)
+        afinger;;
+      exit*)
+        exit;;
+      *)
+        echo "La commande entrée n'est pas correcte.";;
+      esac
+    done
+  else
+    echo "Mot de passe incorrect"
+  fi
 }
 
 # DEBUT DU SCRIPT
@@ -400,11 +410,22 @@ if [ ! -r "Message" ];then
   mkdir 'Message'
 fi
 
-# Création des comptes et machines par défaut
+# Nettoyage des lignes vides dans vlan et passwd dûes aux 
+# effacements de comptes/machines
 
-if [ -z "`cat passwd`" ];then
+sed -i '/^$/d' passwd vlan
+
+# Création des comptes et machines par défaut
+# Prise en compte du cas où seul l'admin est dans la base de donnée
+
+if [ -z "`cat passwd`" -o "`cut -f1 -d ' ' passwd`" = 'admin' ];then
   echo "user pass" >> passwd
   echo "Création du compte utilisateur par défaut"
+fi
+
+if [ -z "`grep '^admin .*' passwd`" ];then
+  echo "admin admin" >> passwd
+  echo "Création du compte admin par défaut"
 fi
 
 if [ -z "`cat vlan`" ];then
@@ -412,10 +433,10 @@ if [ -z "`cat vlan`" ];then
   echo "Création de la machine par défaut et de son droit d'accès par l'utilisateur par défaut"
 fi
 
-if [ -z "`grep admin passwd`" ];then
-  echo "admin admin" >> passwd
-  echo "Création du compte admin par défaut"
-fi
+# Vérification que le minimum au bon fonctionnement de ma commande
+# soit présent
+
+
 
 # Détection du mode invoqué 
 
@@ -424,7 +445,8 @@ if [ "$1" = "-connect" ];then
     MACHINE=$2
     USER=$3
     checkright $MACHINE $USER
-    if [ "$?" -eq '2' ];then
+    r=$?
+    if [ "$r" -eq '2' ];then
       echo "Vous avez le droit de vous connecter"
       checkpasswd $USER
       if [ "$?" -eq '2' ];then
@@ -433,10 +455,12 @@ if [ "$1" = "-connect" ];then
       else
           echo "Problème d'autentification : mot de passe incorrect"
       fi
-    else
-      echo "Vous n'avez pas le droit de vous connecter"
+    elif [ "$r" -eq '1' ];then
+      echo "La machine demandée n'éxiste pas"
+    elif [ "$r" -eq '0' ];then 
+      echo "Truc chelou dans checkright"
     fi
-  else 
+  else
     echo "Préciser nom machine puis nom utilisateur"  
   fi
 elif [ "$1" = "-admin" ];then
@@ -447,17 +471,7 @@ fi
 
 # Ajout d'un -help dans les prompts ou commandes complexes
 
-# who ==> mettre par défaut la machine actuelle, mais rajouter
-# la possibilité de regarder sur une autre machine
-
-# who et rusers faire le cas où personne n'est connecté dans les
-# fonctionso
-
 # comparer les hashs plutôt que les mdp en clair sur le dossier passwd
-
-# Il faudrait créer une fonction qui enlève les lignes vides dans 
-# les fichiers pour nettoyer les fichiers comme passwd et machines
-# où on supprime sauvagement en remplaçant tout par des blancs
 
 # On pourrait rajouter l'envoyeur du message
 
