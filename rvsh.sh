@@ -7,18 +7,18 @@ function who {
 # Un meme utilisateur peut se connecter plusieurs fois sur une machine depuis diff. terminaux
 # On passera le nom de la machine en paramètre
   local machine=$1
-  echo "`grep $machine log|awk '/^.* connecté.*$/{print $2," est connecté depuis "$6" le "$3" "$4" "$5}' `"
+  echo "`grep "^$machine .*$" log|awk '/^.* connecté.*$/{print $2,"est connecté depuis "$6" le "$3" "$4" "$5}' `"
   
 }
 function rusers {
 # Liste des utilisateurs connectés sur le réseau
 # Doit renvoyer nom/heure/date
-  echo "`awk '/^.* connecté.*$/{print $2," est connecté sur "$1" depuis "$6" le "$3" "$4" "$5}' log`"
+  echo "`awk '/^.* connecté.*$/{print $2,"est connecté sur "$1" depuis "$6" le "$3" "$4" "$5}' log`"
 }
 function rhost {
 # Renvoit la liste des machines rattachées au réseau virtuel  
   echo "La liste des machines du réseau : "
-  echo "`cat vlan`"
+  echo "`cat vlan|cut -f1 -d' '`"
 }
 function connect {
 # Se connecter a une autre machine du réseau
@@ -58,12 +58,11 @@ function passwd {
 # On passera l'utilisateur et le mot de passe en paramètre
   local user=$1
   local passwd=$2
-  echo "Je suis dans passwd"
 # On cherche à quelle ligne correspond l'utilisateur dont
 # on veut changer le mot de passe puis on le modifie
   while read line
   do
-    if [ -n "`echo $line|grep $user`" ];then
+    if [ -n "`echo $line|grep "^$user .*$"`" ];then
       sed -i "s/^\($user \).*$/\1$passwd/" passwd
       echo "Mot de passe changé"
     fi
@@ -92,14 +91,14 @@ function host {
   local cmd=$1
   local machine=$2
   if [ "$cmd" = "add" ];then
-    if [ -z "`grep $machine vlan`" ];then
-      echo $machine >> vlan
+    if [ -z "`grep "^$machine .*$" vlan`" ];then
+      echo "$machine " >> vlan
       echo "Création de la machine $machine"
     else
       echo "La machine est déjà dans le vlan"
     fi
   elif [ "$cmd" = "del" ];then
-    if [ -n "`grep $machine vlan`" ];then
+    if [ -n "`grep "^$machine .*$" vlan`" ];then
       sed -i "s/^$machine .*$//" vlan
       echo "$machine supprimée"
     else
@@ -115,27 +114,43 @@ function users {
 # Le if redirigera vers la fonction appropriée
 # Le nom d'utilisateur et le mdp seront passé en paramètre
   local cmd=$1
-  echo "hello"
-  echo "cmd : $cmd"
   if [ "$cmd" = "passwd" ];then
-    echo "Je suis rentré dans passwd de users"
     local user=$2
     local mdp=$3
-    echo "user : $user, mdp : $mdp"
-    passwd $user $mdp
+    echo $user
+    if [ -n "$user" -a -n "$mdp" ];then
+      passwd $user $mdp
+    else
+      echo "Aucun des champs ne doit être vide"
+    fi
   elif [ "$cmd" = "right" ];then
-    echo "Je suis rentré dans right"
     local opt=$2
     local machine=$3
     local user=$4
-    right $opt $machine $user
+    if [ -n "$opt" ];then
+      if [ -n "$machine" -a -n "$user" ];then
+        right $opt $machine $user
+      else 
+        echo "Aucun des champs ne doit être vide"
+      fi
+    else 
+        "Préciser add ou del"
+    fi
   elif [ "$cmd" = "add" ];then
     local user=$2
     local mdp=$3
-    add $user $mdp
+    if [ -n "$user" -a -n "$mdp" ];then
+      add $user $mdp
+    else
+      echo "Aucun des champs ne doit être vide"
+    fi
   elif [ "$cmd" = "del" ];then
     local user=$2
-    del $user
+    if [ -n "$user" ];then
+      del $user
+    else
+      echo "Vous devez préciser un utilisateur"
+    fi
   else
     echo "Argument de users invalide"
   fi
@@ -150,13 +165,12 @@ function right {
   local opt=$1
   local machine=$2
   local user=$3
-  echo $opt
 # On regarde si on veut ajouter ou retirer des droits
   if [ "$opt" = "add" ];then
     checkright $machine $user
 # On vérifie que l'utilisateur n'a pas déjà le droit à ajouter
     if [ "$?" -ne '2' ];then
-      sed -i "s/^\($machine .*\)$/\1 $user/" vlan
+      sed -i "s/^\($machine .*\)$/\1$user /" vlan
       echo "Ajout du droit d'accès de $user sur $machine"
     else
       echo "Cet utilisateur a déjà le droit d'accès à $machine"
@@ -165,7 +179,8 @@ function right {
 # On vérifie que l'utilisateur a bien les droits à retirer
     checkright $machine $user
     if [ "$?" -eq '2' ];then
-      sed -i "s/^\($machine .*\)$user\(.*\)$/\1\2/" vlan
+      sed -i "s/ $user / /" vlan
+      sed -i "s/ $user $/ /" vlan
       echo "Suppression du droit d'accès de $user sur $machine"
     else
       echo "Cet utilisateur n'a pas encore le droit d'accès à $machine"
@@ -181,22 +196,18 @@ function add {
   local flag=0
   local user=$1
   local mdp=$2
-  echo "user : $user" 
 # Vérification de l'absence de l'utilisateur
   while read line
   do
-    a=`echo $line|grep $user`
-    echo $a
-    if [ -n "`echo $line|grep $user`" ];then 
+    if [ -n "`echo $line|grep "^$user .*$"`" ];then 
 # L'utilisateur éxiste déjà si on rentre dans ce if
-      echo "Je suis dans le if"
       local flag=1
     fi
   done < passwd
     
   if [ "$flag" -eq '0' ];then
-    echo "$user $mdp" >> passwd
-    echo "Utilisateur créé"
+    echo "$user $mdp " >> passwd
+    echo "Utilisateur $user créé avec $mdp comme mot de passe"
   else
     echo "Cet utilisateur éxiste déjà"
   fi
@@ -208,12 +219,22 @@ function del {
   local $user
   while read line 
   do
-    echo "Je suis rentré dans le while de del"
-    if [ -n "`echo $line|grep $user`" ];then
-        echo "Je suis rentré dans le if de del"
-      sed -i "s/^.*$//" passwd
+    if [ -n "`echo $line|grep "$user .*$"`" ];then
+      sed -i "s/^$user .*$//" passwd
+      echo "Utilisateur supprimé"
     fi
  done < passwd   
+  while read line 
+  do
+    echo $line
+    echo $user
+    echo "`echo $line|grep "$user "`"
+    if [ -n "`echo $line|grep "$user .*$"`" ];then
+      sed -i "s/ $user / /" vlan
+      sed -i "s/ $user $/ /" vlan
+      echo "Droits de l'utilisateur supprimé"
+    fi
+ done < vlan  
 }
 
 function log {
@@ -233,37 +254,37 @@ function checkright {
 
   local machine=$1
   local user=$2
-  echo "machine : $machine, user : $user"
-  echo "Vérification de vos droits sur la machine demandée"
+  if [ -z "`grep "^$machine .*$" vlan`" ];then
+    return 1
+  fi
   while read line 
   do
-    if [ -n "`echo $line|grep $machine|grep $user`" ];then
+    if [ -n "`echo $line|grep "^$machine .*"|grep "^.* $user"`" ];then
         return 2
     fi
   done < vlan
-  echo "Salut"
-  echo "`grep $machine vlan`"
-  if [ -z "`grep $machine vlan`" ];then
-    echo "Je suis dans if"
-    return 1
-  fi
-  echo $?
   }
 
 function checkpasswd {
 # Permet de vérifier sur le mdp fourni est correct
 # Retourne 0 si le mdp est correct, 1 sinon
 # On passera l'utilisateur puis le mdp en paramètre
-  local flag=1
+
+# On vérifie déjà si l'utilisateur est bien dans la base de données 
   local user=$1
+  if [ -z "`grep "^$user.*$" passwd`" ];then
+    return 1
+  fi
   echo "Veuillez entrer votre mot de passe"
-  read -p "Mot de passe : " passwd
+  read -s -p "Mot de passe : " passwd
+  filtre $passwd
+  passwd=$f1
 # On Cherche l'utilisateur ligne par ligne puis
 # Une fois la ligne correspondante on vérifie le mdp
   while read line
   do
     if [ -n "`echo $line|grep "^$user .*$"`" ];then
-      if [ -n "`echo $line|grep "^.* $passwd .*$"`" ];then
+      if [ -n "`echo $line|grep "^.* $passwd.*$"`" ];then
         return 2
       fi
     fi
@@ -283,7 +304,6 @@ function virtualisation {
   local user=$2
   local heure=`date|cut -f2 -d ','|cut -f1 -d '('|sed 's/ //'`
   local flag=0
-  echo "Je suis sur la machine $machine avec l'utilisateur $user"
 
 # Gestion des logs
   
@@ -299,7 +319,7 @@ function virtualisation {
 
   while read line 
   do
-    if [ -n "`echo $line|grep $machine|grep $user`" ];then
+    if [ -n "`echo $line|grep "^$machine .*"|grep "^.* $user .*$"`" ];then
       local flag=1
     fi
   done < log
@@ -328,21 +348,35 @@ function virtualisation {
     read -p "$2@$1 > " cmd arg1 arg2
     case $cmd in
     who*)
-      who $machine;;
+        who $machine;;
     rusers*)
       rusers;;
+    rhost*)
+      rhost;;
     connect*)
-      echo "Je suis rentré dans connect" 
-      connect $arg1 $user;;
+      if [ -n "$arg1" ];then
+        connect $arg1 $user
+      else
+        echo "Argument de la commande invalide"
+      fi;;
     su*)
-      echo "Je suis rentré dans su"
-      su $machine $arg1;;
+      if [ -n "$arg1" ];then
+        su $machine $arg1
+      else
+        echo "Argument de la commande invalide"
+      fi;;
     passwd*)
-      echo "Je suis rentré dans passwd"
-      passwd $user $arg1;;
+      if [ -n "$arg1" ];then
+        passwd $user $arg1
+      else
+        echo "Argument de la commande invalide"
+      fi;;
     write*)
-      echo "Je suis rentré dans write"
-      write $arg1 $arg2;;
+      if [ -n "$arg1" -a -n "$arg2" ];then
+        write $arg1 $arg2
+      else
+        echo "Argument de la commande invalide"
+      fi;;
     exit*)
       ;;
     *)
@@ -357,32 +391,48 @@ function virtualisation {
 }
 
 function admin {
+
 # Gestion du prompt admin
 
-  checkpasswd admin
-  if [ "$?" -eq '2' ];then
-    local cmd=null
-    while [ "$cmd" != "exit" ]
-    do
-      read -p "rvsh > " cmd arg1 arg2 arg3 arg4
-      echo $cmd
-      case $cmd in
-      host*)
-        host $arg1 $arg2;;
-      users*)
-        echo "Je suis rentré dans users"
-        users $arg1 $arg2 $arg3 $arg4;;
-      afinger*)
-        afinger;;
-      exit*)
-        exit;;
-      *)
-        echo "La commande entrée n'est pas correcte.";;
-      esac
-    done
-  else
-    echo "Mot de passe incorrect"
-  fi
+  local cmd=null
+  while [ "$cmd" != "exit" ]
+  do
+# Nettoyage des lignes vides dans vlan et passwd dûes aux 
+# effacements de comptes/machines
+
+    sed -i '/^$/d' passwd vlan
+
+    read -p "rvsh > " cmd arg1 arg2 arg3 arg4
+
+    filtre $cmd
+    cmd=$f
+    filtre $arg1
+    arg1=$f
+    filtre $arg2
+    arg2=$f
+
+    case $cmd in
+    host*)
+      host $arg1 $arg2;;
+    users*)
+      filtre $arg3
+      arg3=$f
+      filtre $arg4
+      arg4=$f
+      users $arg1 $arg2 $arg3 $arg4;;
+    afinger*)
+      afinger;;
+    exit*)
+      exit;;
+    *)
+      echo "La commande entrée n'est pas correcte.";;
+    esac
+  done
+}
+
+function filtre {
+
+    f="`echo $1|sed 's/[^a-zA-Z0-9]//g'`"
 }
 
 # DEBUT DU SCRIPT
@@ -410,13 +460,11 @@ if [ ! -r "Message" ];then
   mkdir 'Message'
 fi
 
-# Nettoyage des lignes vides dans vlan et passwd dûes aux 
-# effacements de comptes/machines
-
-sed -i '/^$/d' passwd vlan
 
 # Création des comptes et machines par défaut
 # Prise en compte du cas où seul l'admin est dans la base de donnée
+
+# Si aucun compte user n'éxiste alors on en créé un par défaut
 
 if [ -z "`cat passwd`" -o "`cut -f1 -d ' ' passwd`" = 'admin' ];then
   echo "user pass" >> passwd
@@ -433,11 +481,6 @@ if [ -z "`cat vlan`" ];then
   echo "Création de la machine par défaut et de son droit d'accès par l'utilisateur par défaut"
 fi
 
-# Vérification que le minimum au bon fonctionnement de ma commande
-# soit présent
-
-
-
 # Détection du mode invoqué 
 
 if [ "$1" = "-connect" ];then
@@ -449,25 +492,37 @@ if [ "$1" = "-connect" ];then
     if [ "$r" -eq '2' ];then
       echo "Vous avez le droit de vous connecter"
       checkpasswd $USER
-      if [ "$?" -eq '2' ];then
+      p=$?
+      if [ "$p" -eq '2' ];then
         echo "Mot de passe correct, accès au prompt"
         virtualisation $MACHINE $USER
+      elif [ "$p" -eq '1' ];then
+        echo "L'utilisateur n'est pas dans la base de donnée"
       else
-          echo "Problème d'autentification : mot de passe incorrect"
+        echo "Problème d'autentification : mot de passe incorrect"
       fi
     elif [ "$r" -eq '1' ];then
       echo "La machine demandée n'éxiste pas"
     elif [ "$r" -eq '0' ];then 
-      echo "Truc chelou dans checkright"
+      echo "Vous n'avez pas les droit d'accès à cette machine"
     fi
   else
     echo "Préciser nom machine puis nom utilisateur"  
   fi
 elif [ "$1" = "-admin" ];then
-  admin
+  checkpasswd admin
+  if [ "$?" -eq '2' ];then
+    echo "Mot de passe correct"
+    admin
+  else
+    echo "Mot de passe incorrect"
+  fi
 else
   echo "Préciser l'option -connect ou -admin"
 fi
+
+# /!\ /!\ /!\ remplacer les espaces qui servent de séparateur dans
+# le fichier vlan par des : 
 
 # Ajout d'un -help dans les prompts ou commandes complexes
 
@@ -475,15 +530,5 @@ fi
 
 # On pourrait rajouter l'envoyeur du message
 
-# Faire en sorte que quand machine et user sont passés en paramètre
-# machine soit toujours le premier paramètre pour moins d'ambiguïté
-# password entre autre déroge à la règle
-
 # fonction users du mode admin très complexe, vérifier sa parfaite 
 # fonctionnalité
-
-# faire une fonction qui filtre les caractère spéciaux qui 
-# pourraient être rentré dans les mdp et les noms d'utilisateurs
-# et pourrait faire buguer la saisie genre " ' $ ect
-
-# Problème avec les logs de l'utilisateur par défaut
