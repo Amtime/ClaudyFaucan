@@ -523,6 +523,8 @@ fi
 
 # /!\ /!\ /!\ remplacer les espaces qui servent de séparateur dans
 # le fichier vlan par des : 
+# fonctions concernées : users right/users del/users add/checkright
+# et sûrment d'autres
 
 # Ajout d'un -help dans les prompts ou commandes complexes
 
