@@ -358,24 +358,28 @@ function virtualisation {
         connect $arg1 $user
       else
         echo "Argument de la commande invalide"
+        echo "Syntaxe : > connect machine user"
       fi;;
     su*)
       if [ -n "$arg1" ];then
         su $machine $arg1
       else
         echo "Argument de la commande invalide"
+        echo "Syntaxe : > su machine user"
       fi;;
     passwd*)
       if [ -n "$arg1" ];then
         passwd $user $arg1
       else
         echo "Argument de la commande invalide"
+        echo "Syntaxe : > passwd user passwd"
       fi;;
     write*)
       if [ -n "$arg1" -a -n "$arg2" ];then
         write $arg1 $arg2
       else
         echo "Argument de la commande invalide"
+        echo "Syntaxe : > write destinataire@machine message"
       fi;;
     exit*)
       ;;
