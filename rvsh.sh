@@ -83,7 +83,6 @@ function write {
 # /!\ On doit faire un test préalable pour voir si la personne est connectée #######################################
 
 }
-
 function host {
 # Admin ajoute/enlève machine au réseau  
 # On passe la commande et la machine en paramètre
@@ -381,6 +380,8 @@ function virtualisation {
         echo "Argument de la commande invalide"
         echo "Syntaxe : > write destinataire@machine message"
       fi;;
+    help*)
+      help $arg1;;
     exit*)
       ;;
     *)
@@ -426,6 +427,8 @@ function admin {
       users $arg1 $arg2 $arg3 $arg4;;
     afinger*)
       afinger;;
+    help*)
+      help $arg1;;
     exit*)
       exit;;
     *)
@@ -433,10 +436,44 @@ function admin {
     esac
   done
 }
-
 function filtre {
 
     f="`echo $1|sed 's/[^a-zA-Z0-9]//g'`"
+}
+function help {
+    case $1 in
+    host*)
+        clear
+        echo -e "---------- Gestion des machines du réseau ----------
+    
+\033[1mSyntaxe\033[0m > host arg1 arg2
+
+argument 1 \033[1madd/del\033[0m : add pour créer une machine.
+                     del pour en supprimer une.
+           
+argument 2 \033[1mnom\033[0m     : nom de la machine concernée.
+          ";;
+    users*)
+        clear;;
+    afinger*)
+        clear;;
+    who*)
+        clear;;
+    rusers*)
+        clear;;
+    rhost*)
+        clear;;
+    connect*)
+        clear;;
+    su*)
+        clear;;
+    passwd*)
+        clear;;
+    write*)
+        clear;;
+    *)
+      echo "La commande entrée n'est pas correcte.";;
+    esac
 }
 
 # DEBUT DU SCRIPT
