@@ -75,12 +75,26 @@ function finger {
 function write {
 # Envoyer un message à un utilisateur connecté sur une machine du réseau
 # write nom_utilisateur@nom_machine message
-  local dest=$1
-  local message=$2
+  local nom_utilisateur=null
+  local nom_machine=null
+  local dest=null
+  local message=null
+  echo "----------- Envoi de message -----------"
+# Afficher les utilisateurs à qui il est possible d'envoyer un message
+# Test sur les users connectés ?
+  echo "Utilisateurs enregistrés :"
+# Afficher les utilisateurs depuis sed sur le fichier log
+  read -p "Destinataire > " $nom_utilisateur
+# if sur les machines correspondant à l'utilisateur, si il n'y en a plusieur donner choix.
+  echo "L'utilisateur $nom_utilisateur est connecté sur ces machines :"
+# Sed sur fichier vlan  
+  read -p "Machine de destination > " $nom_machine
+  $dest = $nom_utilisateur@$nom_machine
+  read -p "Saisir message > " $message
   `echo "$message" > "./Message/$dest"`
 
 
-# /!\ On doit faire un test préalable pour voir si la personne est connectée #######################################
+# /!\ On doit faire un test préalable pour voir si la personne est connectée ##################Quelle personne ?#############
 
 }
 function host {
@@ -158,7 +172,6 @@ function afinger {
 # Admin renseigne sur un utilisateur, accès avec finger
     echo 1
 }
-
 function right {
 # Gère la distribution des droits 
   local opt=$1
@@ -188,7 +201,6 @@ function right {
     echo "Commande erronée : users right add/del user machine"
   fi
 }
-
 function add {
 # Permet l'ajout d'un utilisateur avec son mdp si cet
 # utilisateur n'est pas encore dans la base de donnée
@@ -211,7 +223,6 @@ function add {
     echo "Cet utilisateur éxiste déjà"
   fi
 }
-
 function del {
 # Permet la suppression d'un utilisateur de la base de donnée
 # On passera le nom d'utilisateur en paramètre
@@ -235,7 +246,6 @@ function del {
     fi
  done < vlan  
 }
-
 function log {
 
 # Permet la création d'une nouvelle ligne de log
@@ -246,7 +256,6 @@ function log {
   local date=`date|cut -f1 -d ','|sed 's/\(.*\) \(.*\) \(.*\) \(.*\)/\2 \3 \4/'`
   echo "$machine $user $date $heure connecté">>log
 }
-
 function checkright {
 # La fonction doit retourner 2 si l'utilisateur à les droits
 # d'accès pour la machines
@@ -263,7 +272,6 @@ function checkright {
     fi
   done < vlan
   }
-
 function checkpasswd {
 # Permet de vérifier sur le mdp fourni est correct
 # Retourne 0 si le mdp est correct, 1 sinon
@@ -290,7 +298,6 @@ function checkpasswd {
   done < passwd
     
 }
-
 function virtualisation {
 
 # Permet la création d'un prompt, cette fonction reçoit la 
@@ -394,7 +401,6 @@ function virtualisation {
 
   sed -i "s/\($machine $user .* \)connecté/\1déconnecté/g" log
 }
-
 function admin {
 
 # Gestion du prompt admin
