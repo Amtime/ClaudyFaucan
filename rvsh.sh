@@ -18,7 +18,7 @@ function rusers {
 function rhost {
 # Renvoit la liste des machines rattachées au réseau virtuel  
   echo "La liste des machines du réseau : "
-  echo "`cat vlan|cut -f1 -d' '`"
+  echo "`cat vlan|cut -f1 -d':'`"
 }
 function connect {
 # Se connecter a une autre machine du réseau
@@ -79,10 +79,10 @@ function write {
   local nom_machine=null
   local dest=null
   local message=null
-  echo "----------- Envoi de message -----------"
+  echo "------------------ Envoi de message ------------------"
 # Afficher les utilisateurs à qui il est possible d'envoyer un message
 # Test sur les users connectés ?
-  echo "Utilisateurs enregistrés :"
+  echo "Utilisateurs enregistrés à qui envoyer message :"
 # Afficher les utilisateurs depuis sed sur le fichier log
   read -p "Destinataire > " $nom_utilisateur
 # if sur les machines correspondant à l'utilisateur, si il n'y en a plusieur donner choix.
@@ -100,19 +100,27 @@ function write {
 function host {
 # Admin ajoute/enlève machine au réseau  
 # On passe la commande et la machine en paramètre
-#
-  local cmd=$1
-  local machine=$2
+  echo "------------------Gestion des machines virtuelles------------------"
+  local machine=null
+  local cmd=null
+  
+  echo "Selection ajout/suppression"
+  read -p "add/del > " cmd
+  
   if [ "$cmd" = "add" ];then
     if [ -z "`grep "^$machine .*$" vlan`" ];then
+      echo "Nom de la nouvelle machine"
+      read -p "> " machine
       echo "$machine " >> vlan
       echo "Création de la machine $machine"
     else
       echo "La machine est déjà dans le vlan"
     fi
   elif [ "$cmd" = "del" ];then
+      echo "Machine à supprimer :"
+      read -p "> " machine
     if [ -n "`grep "^$machine .*$" vlan`" ];then
-      sed -i "s/^$machine .*$//" vlan
+      sed -i '' "s/^$machine:.*$//" vlan
       echo "$machine supprimée"
     else
       echo "La machine n'est pas dans le vlan"
@@ -126,20 +134,46 @@ function users {
 # La "sous commande" sera passée en premier paramètre
 # Le if redirigera vers la fonction appropriée
 # Le nom d'utilisateur et le mdp seront passé en paramètre
-  local cmd=$1
-  if [ "$cmd" = "passwd" ];then
-    local user=$2
-    local mdp=$3
+  clear
+  echo "------ Gestion des utilisateurs : Utilisateurs, Droits et Mot de passe ------"
+  local cmd=null
+  echo -e "
+  Ajouter un utilisateur      \033[1m> add\033[0m
+  Supprimer un utilisateur    \033[1m> del\033[0m
+  Gestion de droits           \033[1m> droits\033[0m
+  Changement de Mot de Passe  \033[1m> pass\033[0m
+  
+  Donner la commande :"
+  read -p "> " cmd
+  
+  if [ "$cmd" = "pass" ];then
+    local user=null
+    echo "Indiquer l'utilisateur concerné :"
+    read -p "> " user
+    
+    local mdp=null
+    echo "Indiquer la machine concernée :"
+    read -s -p "> " mdp
+    
     echo $user
     if [ -n "$user" -a -n "$mdp" ];then
       passwd $user $mdp
     else
       echo "Aucun des champs ne doit être vide"
     fi
-  elif [ "$cmd" = "right" ];then
-    local opt=$2
-    local machine=$3
-    local user=$4
+  elif [ "$cmd" = "droits" ];then
+    local opt=null
+    echo "Indiquer supprimer (del) ou ajouter (add) :"
+    read -p "> " opt
+    
+    local machine=null
+    echo "Indiquer la machine concernée :"
+    read -p "> " machine
+    
+    local user=null
+    echo "Indiquer l'utilisateur concerné :"
+    read -p "> " user
+    
     if [ -n "$opt" ];then
       if [ -n "$machine" -a -n "$user" ];then
         right $opt $machine $user
@@ -150,20 +184,9 @@ function users {
         "Préciser add ou del"
     fi
   elif [ "$cmd" = "add" ];then
-    local user=$2
-    local mdp=$3
-    if [ -n "$user" -a -n "$mdp" ];then
-      add $user $mdp
-    else
-      echo "Aucun des champs ne doit être vide"
-    fi
+    add
   elif [ "$cmd" = "del" ];then
-    local user=$2
-    if [ -n "$user" ];then
-      del $user
-    else
-      echo "Vous devez préciser un utilisateur"
-    fi
+    del
   else
     echo "Argument de users invalide"
   fi
@@ -205,8 +228,11 @@ function add {
 # Permet l'ajout d'un utilisateur avec son mdp si cet
 # utilisateur n'est pas encore dans la base de donnée
   local flag=0
-  local user=$1
-  local mdp=$2
+  local user=null
+  local mdp=null
+  
+  read -p "Nouveau nom d'utilisateur > " user
+  read -s -p "Nouveau mot de passe > " mdp
 # Vérification de l'absence de l'utilisateur
   while read line
   do
@@ -227,10 +253,12 @@ function del {
 # Permet la suppression d'un utilisateur de la base de donnée
 # On passera le nom d'utilisateur en paramètre
   local $user
+  echo "Entrer le nom de l'utilisateur à supprimer :"
+  read -p "> " user
   while read line 
   do
     if [ -n "`echo $line|grep "$user .*$"`" ];then
-      sed -i "s/^$user .*$//" passwd
+      sed -i '' "s/^$user .*$//" passwd
       echo "Utilisateur supprimé"
     fi
  done < passwd   
@@ -240,8 +268,8 @@ function del {
     echo $user
     echo "`echo $line|grep "$user "`"
     if [ -n "`echo $line|grep "$user .*$"`" ];then
-      sed -i "s/ $user / /" vlan
-      sed -i "s/ $user $/ /" vlan
+      sed -i '' "s/ $user / /" vlan
+      sed -i '' "s/ $user $/ /" vlan
       echo "Droits de l'utilisateur supprimé"
     fi
  done < vlan  
@@ -424,7 +452,7 @@ function admin {
 
     case $cmd in
     host*)
-      host $arg1 $arg2;;
+      host;;
     users*)
       filtre $arg3
       arg3=$f
@@ -435,6 +463,8 @@ function admin {
       afinger;;
     help*)
       help $arg1;;
+    add*)
+      add;;
     exit*)
       exit;;
     *)
