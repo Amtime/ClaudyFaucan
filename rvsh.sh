@@ -75,7 +75,8 @@ function passwd {
   done < passwd
 }
 function finger {
-# Renvoit des éléments complémentaires sur l'utilisateur  
+# Renvoit des éléments complémentaires sur l'utilisateur
+# Pointe un utilisateur et donne info style nom, mail..
     echo 1
 }
 function write {
@@ -204,6 +205,7 @@ function users {
 }
 function afinger {
 # Admin renseigne sur un utilisateur, accès avec finger
+# Donne toutes les info nom, pass, mail..
     echo 1
 }
 function right {
@@ -423,16 +425,11 @@ function virtualisation {
         echo "Syntaxe : > passwd user passwd"
       fi;;
     write*)
-      if [ -n "$arg1" -a -n "$arg2" ];then
-        write $arg1 $arg2
-      else
-        echo "Argument de la commande invalide"
-        echo "Syntaxe : > write destinataire@machine message"
-      fi;;
+      write;;
     help*)
       help $arg1;;
     finger*)
-      finer;;
+      finger;;
     exit*)
       ;;
     *)
@@ -456,6 +453,14 @@ function admin {
 # effacements de comptes/machines
 
     sed -i '/^$/d' passwd vlan
+    
+    echo -e "--------------------------- Réseau Virtuel RVSH ---------------------------
+    
+    Commandes admin :
+    )\033[1mpasswd\033[0m     )\033[1mright\033[0m  )\033[1madd\033[0m    )\033[1mdel\033[0m 
+    
+    Aide avec \033[1m>help + commande\033[0m
+    "
 
     read -p "rvsh > " cmd arg1 arg2 arg3 arg4
 
@@ -530,7 +535,7 @@ argument 2 \033[1mnom\033[0m     : nom de la machine concernée.
 
 # DEBUT DU SCRIPT
 
-# Création du fichie log, passwd, vlan
+# Création du fichier log, passwd, vlan
 # et du répertoire à message si ces derniers n'éxistent pas
 
 if [ ! -w 'log' ];then
@@ -557,7 +562,7 @@ fi
 # Création des comptes et machines par défaut
 # Prise en compte du cas où seul l'admin est dans la base de donnée
 
-# Si aucun compte user n'éxiste alors on en créé un par défaut
+# Si aucun compte user n'existe alors on en créé un par défaut
 
 if [ -z "`cat passwd`" -o "`cut -f1 -d ':' passwd`" = 'admin' ];then
   echo "user:pass:" >> passwd
@@ -578,8 +583,8 @@ fi
 
 if [ "$1" = "-connect" ];then
   if [ "$#" = "3" ];then
-    MACHINE=$2
-    USER=$3
+    read -p "Nom d'utilisateur > " $USER
+    read -p "Machine > " $MACHINE
     checkright $MACHINE $USER
     r=$?
     if [ "$r" -eq '2' ];then
