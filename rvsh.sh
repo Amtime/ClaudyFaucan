@@ -37,14 +37,20 @@ function su {
 # On passera le nom de la machine et de l'utilisateur en paramètre
   local machine=$1
   local user=$2
+  echo "machine : $machine, user : $user"
   checkright $machine $user
-  if [ "$?" -eq '2' ];then
-    checkpasswd $user
-      if [ $? -eq '2' ];then
-        virtualisation $machine $user
-      else
-        echo "Problème d'autentification : mot de passe incorrect"
-      fi
+  local t=$?
+  if [ "$t" -eq '1' ];then
+    echo "Machine inconnue"
+  elif [ "$t" -eq '3' ];then
+    echo "Utilisateur inconnu"
+  elif [ "$t" -eq '2' ];then
+    checkpasswd $user 
+    if [ $t -eq '2' ];then
+      virtualisation $machine $user
+    else
+      echo "Problème d'autentification : mot de passe incorrect"
+    fi
   else
     echo "Problème de droit d'accès."
   fi
@@ -63,7 +69,7 @@ function passwd {
   while read line
   do
     if [ -n "`echo $line|grep "^$user .*$"`" ];then
-      sed -i "s/^\($user \).*$/\1$passwd/" passwd
+      sed -i "s/^\($user:\).*\(:.*\)$/\1$passwd\2/" passwd
       echo "Mot de passe changé"
     fi
   done < passwd
@@ -108,10 +114,10 @@ function host {
   read -p "add/del > " cmd
   
   if [ "$cmd" = "add" ];then
-    if [ -z "`grep "^$machine .*$" vlan`" ];then
-      echo "Nom de la nouvelle machine"
-      read -p "> " machine
-      echo "$machine " >> vlan
+    echo "Nom de la nouvelle machine"
+    read -p "> " machine
+    if [ -z "`grep "^$machine:.*$" vlan`" ];then
+      echo "$machine:" >> vlan
       echo "Création de la machine $machine"
     else
       echo "La machine est déjà dans le vlan"
@@ -119,8 +125,8 @@ function host {
   elif [ "$cmd" = "del" ];then
       echo "Machine à supprimer :"
       read -p "> " machine
-    if [ -n "`grep "^$machine .*$" vlan`" ];then
-      sed -i '' "s/^$machine:.*$//" vlan
+    if [ -n "`grep "^$machine:.*$" vlan`" ];then
+      sed -i "/^$machine:.*$/d" vlan
       echo "$machine supprimée"
     else
       echo "La machine n'est pas dans le vlan"
@@ -143,46 +149,51 @@ function users {
   Gestion de droits           \033[1m> droits\033[0m
   Changement de Mot de Passe  \033[1m> pass\033[0m
   
-  Donner la commande :"
+  Entrer la commande :"
   read -p "> " cmd
+  echo ""
   
   if [ "$cmd" = "pass" ];then
     local user=null
     echo "Indiquer l'utilisateur concerné :"
     read -p "> " user
     
-    local mdp=null
-    echo "Indiquer la machine concernée :"
-    read -s -p "> " mdp
-    
-    echo $user
-    if [ -n "$user" -a -n "$mdp" ];then
-      passwd $user $mdp
+    if [ -n "`grep "^$user:" passwd`" ];then
+      local mdp=null
+      echo "Indiquer le mot de passe :"
+      read -s -p "> " mdp
+      if [ -n "$mdp" ];then
+        passwd $user $mdp
+      fi
     else
-      echo "Aucun des champs ne doit être vide"
+      echo "L'utilisateur n'éxiste pas"
     fi
+    
   elif [ "$cmd" = "droits" ];then
     local opt=null
     echo "Indiquer supprimer (del) ou ajouter (add) :"
     read -p "> " opt
-    
-    local machine=null
-    echo "Indiquer la machine concernée :"
-    read -p "> " machine
-    
-    local user=null
-    echo "Indiquer l'utilisateur concerné :"
-    read -p "> " user
-    
     if [ -n "$opt" ];then
-      if [ -n "$machine" -a -n "$user" ];then
-        right $opt $machine $user
-      else 
-        echo "Aucun des champs ne doit être vide"
+      local machine=null
+      echo "Indiquer la machine concernée :"
+      read -p "> " machine
+    
+      if [  -n "`grep "^$machine:.*$" vlan`" ];then
+        local user=null
+        echo "Indiquer l'utilisateur concerné :"
+        read -p "> " user
+        if [ -n "`grep "^$user:" passwd`" ];then
+          right $opt $machine $user
+        else
+            echo "Cet utilisateur n'éxiste pas"
+        fi
+      else
+        echo "Cette machine n'éxiste pas"
       fi
     else 
         "Préciser add ou del"
     fi
+
   elif [ "$cmd" = "add" ];then
     add
   elif [ "$cmd" = "del" ];then
@@ -205,7 +216,7 @@ function right {
     checkright $machine $user
 # On vérifie que l'utilisateur n'a pas déjà le droit à ajouter
     if [ "$?" -ne '2' ];then
-      sed -i "s/^\($machine .*\)$/\1$user /" vlan
+      sed -i "s/^\($machine:.*\)$/\1$user:/" vlan
       echo "Ajout du droit d'accès de $user sur $machine"
     else
       echo "Cet utilisateur a déjà le droit d'accès à $machine"
@@ -214,8 +225,7 @@ function right {
 # On vérifie que l'utilisateur a bien les droits à retirer
     checkright $machine $user
     if [ "$?" -eq '2' ];then
-      sed -i "s/ $user / /" vlan
-      sed -i "s/ $user $/ /" vlan
+      sed -i "s/\(.*:\)$user:\(.*\)/\1\2/" vlan
       echo "Suppression du droit d'accès de $user sur $machine"
     else
       echo "Cet utilisateur n'a pas encore le droit d'accès à $machine"
@@ -232,18 +242,19 @@ function add {
   local mdp=null
   
   read -p "Nouveau nom d'utilisateur > " user
-  read -s -p "Nouveau mot de passe > " mdp
 # Vérification de l'absence de l'utilisateur
   while read line
   do
-    if [ -n "`echo $line|grep "^$user .*$"`" ];then 
+    if [ -n "`echo $line|grep "^$user:"`" ];then 
 # L'utilisateur éxiste déjà si on rentre dans ce if
       local flag=1
     fi
   done < passwd
-    
+
   if [ "$flag" -eq '0' ];then
-    echo "$user $mdp " >> passwd
+    read -s -p "Nouveau mot de passe > " mdp
+    echo ""
+    echo "$user:$mdp:" >> passwd
     echo "Utilisateur $user créé avec $mdp comme mot de passe"
   else
     echo "Cet utilisateur éxiste déjà"
@@ -255,24 +266,24 @@ function del {
   local $user
   echo "Entrer le nom de l'utilisateur à supprimer :"
   read -p "> " user
-  while read line 
-  do
-    if [ -n "`echo $line|grep "$user .*$"`" ];then
-      sed -i '' "s/^$user .*$//" passwd
-      echo "Utilisateur supprimé"
-    fi
- done < passwd   
-  while read line 
-  do
-    echo $line
-    echo $user
-    echo "`echo $line|grep "$user "`"
-    if [ -n "`echo $line|grep "$user .*$"`" ];then
-      sed -i '' "s/ $user / /" vlan
-      sed -i '' "s/ $user $/ /" vlan
-      echo "Droits de l'utilisateur supprimé"
-    fi
- done < vlan  
+  if [ -n "`grep $user passwd`" ];then
+    while read line 
+    do
+      if [ -n "`echo $line|grep "$user:"`" ];then
+        `sed -i "/^$user:/d" passwd`
+        echo "Utilisateur supprimé"
+      fi
+    done < passwd   
+    while read line 
+    do
+      if [ -n "`echo $line|grep ":$user:.*$"`" ];then
+        sed -i "s/\(.*:\)$user:\(.*\)/\1\2/" vlan
+        echo "Droits de l'utilisateur supprimé"
+      fi
+   done < vlan  
+ else
+    echo "L'utilisateur n'éxiste pas"
+ fi
 }
 function log {
 
@@ -290,12 +301,17 @@ function checkright {
 
   local machine=$1
   local user=$2
-  if [ -z "`grep "^$machine .*$" vlan`" ];then
+  if [ -z "`grep "^$machine:.*$" vlan`" ];then
     return 1
   fi
+  echo $user
+  if [ -z "`grep "^$user:" passwd`" ];then
+    return 3
+  fi
+  echo lal
   while read line 
   do
-    if [ -n "`echo $line|grep "^$machine .*"|grep "^.* $user"`" ];then
+    if [ -n "`echo $line|grep "^$machine:"|grep "^.*:$user:"`" ];then
         return 2
     fi
   done < vlan
@@ -307,21 +323,19 @@ function checkpasswd {
 
 # On vérifie déjà si l'utilisateur est bien dans la base de données 
   local user=$1
-  if [ -z "`grep "^$user.*$" passwd`" ];then
+  if [ -z "`grep "^$user:" passwd`" ];then
     return 1
   fi
   echo "Veuillez entrer votre mot de passe"
   read -s -p "Mot de passe : " passwd
-  filtre $passwd
-  passwd=$f1
+  echo ""
+
 # On Cherche l'utilisateur ligne par ligne puis
 # Une fois la ligne correspondante on vérifie le mdp
   while read line
   do
-    if [ -n "`echo $line|grep "^$user .*$"`" ];then
-      if [ -n "`echo $line|grep "^.* $passwd.*$"`" ];then
-        return 2
-      fi
+    if [ -n "`echo $line|grep "^$user:$passwd:"`" ];then
+      return 2
     fi
   done < passwd
     
@@ -395,8 +409,8 @@ function virtualisation {
         echo "Syntaxe : > connect machine user"
       fi;;
     su*)
-      if [ -n "$arg1" ];then
-        su $machine $arg1
+      if [ -n "$arg1" -a -n "$arg2" ];then
+        su $arg1 $arg2
       else
         echo "Argument de la commande invalide"
         echo "Syntaxe : > su machine user"
@@ -417,6 +431,8 @@ function virtualisation {
       fi;;
     help*)
       help $arg1;;
+    finger*)
+      finer;;
     exit*)
       ;;
     *)
@@ -543,18 +559,18 @@ fi
 
 # Si aucun compte user n'éxiste alors on en créé un par défaut
 
-if [ -z "`cat passwd`" -o "`cut -f1 -d ' ' passwd`" = 'admin' ];then
-  echo "user pass" >> passwd
+if [ -z "`cat passwd`" -o "`cut -f1 -d ':' passwd`" = 'admin' ];then
+  echo "user:pass:" >> passwd
   echo "Création du compte utilisateur par défaut"
 fi
 
-if [ -z "`grep '^admin .*' passwd`" ];then
-  echo "admin admin" >> passwd
+if [ -z "`grep '^admin:' passwd`" ];then
+  echo "admin:admin:" >> passwd
   echo "Création du compte admin par défaut"
 fi
 
 if [ -z "`cat vlan`" ];then
-  echo "machine user" >> vlan
+  echo "machine:user:" >> vlan
   echo "Création de la machine par défaut et de son droit d'accès par l'utilisateur par défaut"
 fi
 
@@ -571,7 +587,6 @@ if [ "$1" = "-connect" ];then
       checkpasswd $USER
       p=$?
       if [ "$p" -eq '2' ];then
-        echo ""
         echo "Mot de passe correct, accès au prompt"
         virtualisation $MACHINE $USER
       elif [ "$p" -eq '1' ];then
