@@ -571,7 +571,8 @@ if [ "$1" = "-connect" ];then
       checkpasswd $USER
       p=$?
       if [ "$p" -eq '2' ];then
-        echo "\nMot de passe correct, accès au prompt"
+        echo ""
+        echo "Mot de passe correct, accès au prompt"
         virtualisation $MACHINE $USER
       elif [ "$p" -eq '1' ];then
         echo "L'utilisateur n'est pas dans la base de donnée"
