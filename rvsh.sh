@@ -84,25 +84,25 @@ function write {
 # write nom_utilisateur@nom_machine message
   local nom_utilisateur=null
   local nom_machine=null
-  local dest=null
+  local dest="lol"
   local message=null
   echo "------------------ Envoi de message ------------------"
 # Afficher les utilisateurs à qui il est possible d'envoyer un message
 # Test sur les users connectés ?
   echo "Utilisateurs enregistrés à qui envoyer message :"
 # Afficher les utilisateurs depuis sed sur le fichier log
-  read -p "Destinataire > " $nom_utilisateur
+  read -p "Destinataire > " nom_utilisateur
 # if sur les machines correspondant à l'utilisateur, si il n'y en a plusieurs donner choix.
-  echo "L'utilisateur $nom_utilisateur est connecté sur ces machines :"
+  echo "L'utilisateur" $nom_utilisateur "est enregistré sur les machines :"
+  ################################## Manque bout de code #######################
 # Sed sur fichier vlan  
-  read -p "Machine de destination > " $nom_machine
-  $dest = $nom_utilisateur@$nom_machine
-  read -p "Saisir message > " $message
+  read -p "Machine de destination > " nom_machine
+  dest=`echo "$nom_utilisateur@$nom_machine"`
+  echo $dest
+  read -p "Saisir message > " message
   `echo "$message" > "./Message/$dest"`
 
-
 # /!\ On doit faire un test préalable pour voir si la personne est connectée ##################Quelle personne ?#############
-
 }
 function host {
 # Admin ajoute/enlève machine au réseau  
