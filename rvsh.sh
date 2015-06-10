@@ -92,7 +92,7 @@ function write {
   echo "Utilisateurs enregistrés à qui envoyer message :"
 # Afficher les utilisateurs depuis sed sur le fichier log
   read -p "Destinataire > " $nom_utilisateur
-# if sur les machines correspondant à l'utilisateur, si il n'y en a plusieur donner choix.
+# if sur les machines correspondant à l'utilisateur, si il n'y en a plusieurs donner choix.
   echo "L'utilisateur $nom_utilisateur est connecté sur ces machines :"
 # Sed sur fichier vlan  
   read -p "Machine de destination > " $nom_machine
@@ -486,6 +486,8 @@ function admin {
       help $arg1;;
     add*)
       add;;
+    write*)
+      write;;
     exit*)
       exit;;
     *)
