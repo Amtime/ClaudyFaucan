@@ -453,7 +453,7 @@ function admin {
 # effacements de comptes/machines
 
     sed -i '/^$/d' passwd vlan
-    
+    clear
     echo -e "--------------------------- Réseau Virtuel RVSH ---------------------------
     
     Commandes admin :
@@ -584,7 +584,6 @@ fi
 # Détection du mode invoqué 
 
 if [ "$1" = "-connect" ];then
-  if [ "$#" = "3" ];then
     read -p "Nom d'utilisateur > " $USER
     read -p "Machine > " $MACHINE
     checkright $MACHINE $USER
@@ -606,9 +605,6 @@ if [ "$1" = "-connect" ];then
     elif [ "$r" -eq '0' ];then 
       echo "Vous n'avez pas les droit d'accès à cette machine"
     fi
-  else
-    echo "Préciser nom machine puis nom utilisateur"  
-  fi
 elif [ "$1" = "-admin" ];then
   checkpasswd admin
   if [ "$?" -eq '2' ];then
