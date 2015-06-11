@@ -107,6 +107,7 @@ function write {
 function host {
 # Admin ajoute/enlève machine au réseau  
 # On passe la commande et la machine en paramètre
+  clear
   echo "------------------Gestion des machines virtuelles------------------"
   local machine=null
   local cmd=null
@@ -206,6 +207,8 @@ function users {
 function afinger {
 # Admin renseigne sur un utilisateur, accès avec finger
 # Donne toutes les info nom, pass, mail..
+    clear
+    echo "--------------------- Informations sur utilisateurs ---------------------"
     echo 1
 }
 function right {
@@ -457,7 +460,9 @@ function admin {
     echo -e "--------------------------- Réseau Virtuel RVSH ---------------------------
     
     Commandes admin :
-    )\033[1mpasswd\033[0m     )\033[1mright\033[0m  )\033[1madd\033[0m    )\033[1mdel\033[0m 
+    ) Gestion des utilisateurs/droits :        \033[1musers\033[0m     
+    ) Informations sur un utilisateur :        \033[1mafinger + nom user\033[0m
+    ) Gestion des machines :                   \033[1mhost\033[0m 
     
     Aide avec \033[1m>help + commande\033[0m
     "
