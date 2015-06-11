@@ -159,11 +159,15 @@ function users {
     local user=null
     echo "Indiquer l'utilisateur concerné :"
     read -p "> " user
+    filtre $user
+    user=$f
     
     if [ -n "`grep "^$user:" passwd`" ];then
       local mdp=null
       echo "Indiquer le mot de passe :"
       read -s -p "> " mdp
+      filtre $mdp
+      mdp=$f
       if [ -n "$mdp" ];then
         passwd $user $mdp
       fi
@@ -480,11 +484,7 @@ function admin {
     host*)
       host;;
     users*)
-      filtre $arg3
-      arg3=$f
-      filtre $arg4
-      arg4=$f
-      users $arg1 $arg2 $arg3 $arg4;;
+      users;;
     afinger*)
       afinger;;
     help*)
