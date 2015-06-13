@@ -84,6 +84,7 @@ function write {
   local nom_utilisateur=null
   local nom_machine=null
   local dest=null
+  local flag=1
   local message=null
   clear
   echo "------------------ Envoi de message ------------------"
@@ -93,7 +94,14 @@ function write {
   read -p "Destinataire > " nom_utilisateur
 # On vérifie que l'utilisateur existe dans la base de donnée  
   if [ -n "`grep "^$nom_utilisateur:" passwd`" ]; then
-    if [ -z "$(echo "`awk '/^.* $nom_utilisateur .* connecté$/{print $1}' log`")" ]; then
+    while read line 
+    do
+      if [ -n "` echo $line|grep " $nom_utilisateur .* connnecté$"`" ];then
+        flag=0
+      fi
+    done < log
+  
+    if [ "$flag" -ne '0' ]; then
       echo "L'utilisateur n'est pas connecté"
       sleep 2
       return 1
