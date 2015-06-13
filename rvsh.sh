@@ -98,45 +98,40 @@ function write {
     do
       echo $line
       echo $nom_utilisateur
-      if [ -n "` echo $line|grep " $nom_utilisateur .* connnecté$"`" ];then
+      if [ -n "`echo "$line"|grep " $nom_utilisateur .* connecté$"`" ];then
         flag=0
       fi
     done < log
   
     if [ "$flag" -ne '0' ]; then
       echo "L'utilisateur n'est pas connecté"
-      sleep 2
       return 1
     fi
   else
     echo "L'utilisateur n'existe pas"
-    sleep 2
     return 1
   fi
-# Sed sur fichier vlan  
+
   read -p "Machine de destination > " nom_machine
   if [ -z "`grep "^$nom_machine $nom_utilisateur .* connecté$" log`" ];then
-    echo "Le nom de machine est incorrect"
-    sleep 2
+    echo "L'utilisateur n'est pas connecté sur cette machine"
     return 1
   fi
-# Check machine
-# Si user correct on affiche les machines sur lesquelles il est connecté
-    dest=`echo "$nom_utilisateur@$nom_machine"`
-    read -p "Saisir message > " message
-    if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
-      echo "----------------------------------------------------------
-      Message de $user :
-      
-      $message
-      " >> "./Message/$dest"
-    else
-      echo "Message de $user :
-      
-      $message
-      " > "./Message/$dest"
-    fi
-    clear
+
+  read -p "Saisir message > " message
+  if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
+    echo "----------------------------------------------------------
+    Message de $user :
+    
+    $message
+    " >> "./Message/$dest"
+  else
+    echo "Message de $user :
+    
+    $message
+    " > "./Message/$dest"
+  fi
+  clear
 }
 function host {
 # Admin ajoute/enlève machine au réseau  
@@ -213,12 +208,12 @@ function users {
     local opt=null
     echo "Indiquer supprimer (del) ou ajouter (add) :"
     read -p "> " opt
-    if [ -n "$opt" ];then
+    if [ "$opt" = "add" -o "$opt" = "del" ];then
       local machine=null
       echo "Indiquer la machine concernée :"
       read -p "> " machine
     
-      if [  -n "`grep "^$machine:.*$" vlan`" ];then
+      if [ -n "`grep "^$machine:.*$" vlan`" ];then
         local user=null
         echo "Indiquer l'utilisateur concerné :"
         read -p "> " user
@@ -231,7 +226,7 @@ function users {
         echo "Cette machine n'éxiste pas"
       fi
     else 
-        "Préciser add ou del"
+        echo "Veuillez choisir entre add ou del"
     fi
 
   elif [ "$cmd" = "add" ];then
@@ -367,7 +362,6 @@ function checkpasswd {
   if [ -z "`grep "^$user:" passwd`" ];then
     return 1
   fi
-  echo "Veuillez entrer votre mot de passe"
   read -s -p "Mot de passe : " passwd
   echo ""
 
@@ -447,11 +441,11 @@ function virtualisation {
         echo "Syntaxe : > connect machine"
       fi;;
     su*)
-      if [ -n "$arg1" -a -n "$arg2" ];then
-        su $arg1 $arg2
+      if [ -n "$arg1" ];then
+        su $machine $arg1
       else
         echo "Argument de la commande invalide"
-        echo "Syntaxe : > su machine user"
+        echo "Syntaxe : > su user"
       fi;;
     passwd*)
       if [ -n "$arg1" ];then
@@ -482,6 +476,7 @@ function admin {
 
 # Gestion du prompt admin
 
+  clear
   local cmd=null
   while [ "$cmd" != "exit" ]
   do
@@ -489,8 +484,7 @@ function admin {
 # effacements de comptes/machines
 
     sed -i '/^$/d' passwd vlan
-    clear
-    echo -e "--------------------------- Réseau Virtuel RVSH ---------------------------
+    echo -e "--------------------------- Réseau Virtuel RVSH -------------------
     
     Commandes admin :
     ) Gestion des utilisateurs/droits :        \033[1musers\033[0m     
