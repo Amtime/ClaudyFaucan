@@ -37,7 +37,6 @@ function su {
 # On passera le nom de la machine et de l'utilisateur en paramètre
   local machine=$1
   local user=$2
-  echo "machine : $machine, user : $user"
   checkright $machine $user
   local t=$?
   if [ "$t" -eq '1' ];then
@@ -98,7 +97,8 @@ function write {
   read -p "Saisir message > " message
   `echo "Message de $user :
     
-    $message" > "./Message/$dest"`
+  $message
+  " > "./Message/$dest"`
 
 # /!\ On doit faire un test préalable pour voir si la personne est connectée ##################Quelle personne ?#############
 }
@@ -394,7 +394,7 @@ function virtualisation {
   do
 # Vérification si aucun message n'a été reçu
     if [ -n  "`ls './Message'|grep "^$user@$machine$"`" ];then
-      echo "Vous avez un message : `cat ./Message/$user@$machine`"
+      echo "`cat ./Message/$user@$machine`"
       `rm "./Message/$user@$machine"`
     fi
 
@@ -589,7 +589,6 @@ if [ "$1" = "-connect" ];then
     checkright $MACHINE $USER
     r=$?
     if [ "$r" -eq '2' ];then
-      echo "Vous avez le droit de vous connecter"
       checkpasswd $USER
       p=$?
       if [ "$p" -eq '2' ];then
