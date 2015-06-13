@@ -88,12 +88,12 @@ function write {
   clear
   echo "------------------ Envoi de message ------------------"
   echo "Utilisateurs enregistrés à qui envoyer message :"
-  echo "`awk "/ connecté$/{print $2 $1}" log`"
+  echo "`awk '/ connecté$/{print $2" connecté sur "$1}' log`"
 # Afficher les utilisateurs depuis sed sur le fichier log
   read -p "Destinataire > " nom_utilisateur
 # On vérifie que l'utilisateur existe dans la base de donnée  
   if [ -n "`grep "^$nom_utilisateur:" passwd`" ]; then
-    if [ -z "$(echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $1}" log`")" ]; then
+    if [ -z "$(echo "`awk '/^.* $nom_utilisateur .* connecté$/{print $1}' log`")" ]; then
       echo "L'utilisateur n'est pas connecté"
       sleep 2
       return 1
@@ -105,7 +105,7 @@ function write {
   fi
 # Sed sur fichier vlan  
   read -p "Machine de destination > " nom_machine
-  if [ -z "`grep "^$nom_machine $nom_utilisateur .* connecté$"`" ];then
+  if [ -z "`grep "^$nom_machine $nom_utilisateur .* connecté$" log`" ];then
     echo "Le nom de machine est incorrect"
     sleep 2
     return 1
