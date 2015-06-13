@@ -95,7 +95,7 @@ function write {
 # On vérifie que l'utilisateur existe dans la base de donnée  
   if [ -n "`grep "^$nom_utilisateur:" passwd`" ]; then
     echo "Utilisateur existe"
-    if [ -n "$(echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $1}"`")" ]; then
+    if [ -n "$(echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $1}" log`")" ]; then
      echo "zizi"
     else
       echo "L'utilisateur n'est pas connecté"
