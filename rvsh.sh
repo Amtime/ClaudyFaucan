@@ -408,8 +408,7 @@ function virtualisation {
       if [ -n "$arg1" ];then
         connect $arg1 $user
       else
-        echo "Argument de la commande invalide"
-        echo "Syntaxe : > connect machine user"
+        echo "Syntaxe : > connect machine"
       fi;;
     su*)
       if [ -n "$arg1" -a -n "$arg2" ];then
