@@ -68,7 +68,7 @@ function passwd {
 # on veut changer le mot de passe puis on le modifie
   while read line
   do
-    if [ -n "`echo $line|grep "^$user .*$"`" ];then
+    if [ -n "`echo $line|grep "^$user:.*$"`" ];then
       sed -i "s/^\($user:\).*\(:.*\)$/\1$passwd\2/" passwd
       echo "Mot de passe changé"
     fi
@@ -422,7 +422,7 @@ function virtualisation {
         passwd $user $arg1
       else
         echo "Argument de la commande invalide"
-        echo "Syntaxe : > passwd user passwd"
+        echo "Syntaxe : > passwd motDePasse"
       fi;;
     write*)
       write;;
