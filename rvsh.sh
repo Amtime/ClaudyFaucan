@@ -95,7 +95,7 @@ function write {
   read -p "Machine de destination > " nom_machine
   dest=`echo "$nom_utilisateur@$nom_machine"`
   read -p "Saisir message > " message
-  if [ -n "`ls /Message|grep $nom_utilisateur@$nom_machine`" ]; then
+  if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
     echo "----------------------------------------------------------"
     echo "Message de $user :
     
@@ -616,3 +616,6 @@ else
 fi
 
 # comparer les hashs plutôt que les mdp en clair sur le dossier passwd
+# Gérer la double connexion
+# Verifier la machine destinataire
+
