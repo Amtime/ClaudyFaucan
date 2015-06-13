@@ -96,6 +96,8 @@ function write {
   if [ -n "`grep "^$nom_utilisateur:" passwd`" ]; then
     while read line 
     do
+      echo $line
+      echo $nom_utilisateur
       if [ -n "` echo $line|grep " $nom_utilisateur .* connnecté$"`" ];then
         flag=0
       fi
