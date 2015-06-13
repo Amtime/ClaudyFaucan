@@ -83,7 +83,7 @@ function write {
 # write nom_utilisateur@nom_machine message
   local nom_utilisateur=null
   local nom_machine=null
-  local dest="lol"
+  local dest=null
   local message=null
   echo "------------------ Envoi de message ------------------"
 # Afficher les utilisateurs à qui il est possible d'envoyer un message
@@ -91,22 +91,33 @@ function write {
   echo "Utilisateurs enregistrés à qui envoyer message :"
 # Afficher les utilisateurs depuis sed sur le fichier log
   read -p "Destinataire > " nom_utilisateur
+# On vérifie que l'utilisateur existe dans la base de donnée  
+  if [ -n "`grep "^$nom_utilisateur:" passwd`" ]; then
+    echo "Utilisateur existe"
+    if [ -n "$(echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $1}"`")" ]
+     echo "zizi"
+    fi
+  else
+    echo "L'utilisateur n'existe pas"
+  fi
 # Sed sur fichier vlan  
   read -p "Machine de destination > " nom_machine
-  dest=`echo "$nom_utilisateur@$nom_machine"`
-  read -p "Saisir message > " message
-  if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
-    echo "----------------------------------------------------------
-    Message de $user :
-    
-    $message
-    " >> "./Message/$dest"
-  else
-    echo "Message de $user :
-    
-    $message
-    " > "./Message/$dest"
-  fi
+# Check machine
+# Si user correct on affiche les machines sur lesquelles il est connecté
+    dest=`echo "$nom_utilisateur@$nom_machine"`
+    read -p "Saisir message > " message
+    if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
+      echo "----------------------------------------------------------
+      Message de $user :
+      
+      $message
+      " >> "./Message/$dest"
+    else
+      echo "Message de $user :
+      
+      $message
+      " > "./Message/$dest"
+    fi
 # /!\ On doit faire un test préalable pour voir si la personne est connectée ##################Quelle personne ?#############
 }
 function host {
