@@ -88,7 +88,7 @@ function write {
   clear
   echo "------------------ Envoi de message ------------------"
   echo "Utilisateurs enregistrés à qui envoyer message :"
-  echo "`awk "/ connecté$/{print $2" connecté sur "$1}" log`"
+  echo "`awk "/ connecté$/{print $2 $1}" log`"
 # Afficher les utilisateurs depuis sed sur le fichier log
   read -p "Destinataire > " nom_utilisateur
 # On vérifie que l'utilisateur existe dans la base de donnée  
