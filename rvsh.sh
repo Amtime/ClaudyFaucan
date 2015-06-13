@@ -96,7 +96,9 @@ function write {
   read -p "Machine de destination > " nom_machine
   dest=`echo "$nom_utilisateur@$nom_machine"`
   read -p "Saisir message > " message
-  `echo "$message" > "./Message/$dest"`
+  `echo "Message de $user :
+    
+    $message" > "./Message/$dest"`
 
 # /!\ On doit faire un test préalable pour voir si la personne est connectée ##################Quelle personne ?#############
 }
