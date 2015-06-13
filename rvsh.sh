@@ -85,6 +85,7 @@ function write {
   local nom_machine=null
   local dest=null
   local message=null
+  clear
   echo "------------------ Envoi de message ------------------"
 # Afficher les utilisateurs à qui il est possible d'envoyer un message
 # Test sur les users connectés ?
@@ -96,6 +97,10 @@ function write {
     echo "Utilisateur existe"
     if [ -n "$(echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $1}"`")" ]; then
      echo "zizi"
+    else
+      echo "L'utilisateur n'est pas connecté"
+      sleep 2
+      return 1
     fi
   else
     echo "L'utilisateur n'existe pas"
