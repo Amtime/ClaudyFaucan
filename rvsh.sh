@@ -88,7 +88,7 @@ function write {
   clear
   echo "------------------ Envoi de message ------------------"
   echo "Utilisateurs enregistrés à qui envoyer message :"
-  echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $2" connecté sur "$1}" log`"
+  echo "`awk "/ connecté$/{print $2" connecté sur "$1}" log`"
 # Afficher les utilisateurs depuis sed sur le fichier log
   read -p "Destinataire > " nom_utilisateur
 # On vérifie que l'utilisateur existe dans la base de donnée  
@@ -105,13 +105,11 @@ function write {
   fi
 # Sed sur fichier vlan  
   read -p "Machine de destination > " nom_machine
-  #if [];then
-    
-  #else
-   # echo "Le nom de machine est incorrect"
-    #sleep 2
-    #return 1
-  #fi
+  if [ -z "`grep "^$nom_machine $nom_utilisateur .* connecté$"`" ];then
+    echo "Le nom de machine est incorrect"
+    sleep 2
+    return 1
+  fi
 # Check machine
 # Si user correct on affiche les machines sur lesquelles il est connecté
     dest=`echo "$nom_utilisateur@$nom_machine"`
