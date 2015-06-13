@@ -106,7 +106,7 @@ function write {
     
     $message
     " > "./Message/$dest"
-
+  fi
 # /!\ On doit faire un test préalable pour voir si la personne est connectée ##################Quelle personne ?#############
 }
 function host {
@@ -387,10 +387,8 @@ function virtualisation {
 # Si le flag est à 0 on crée un nouveau log, sinon on actualise
 
   if [ "$flag" -eq "0" ];then
-    echo "Création d'un new log"
     log $machine $user
   else
-    echo "Actualisation des logs"
     sed -i "s/\($machine $user .*\)..:..:.*/\1${heure}connecté/" log
   fi
   local flag=0
@@ -548,22 +546,18 @@ argument 2 \033[1mnom\033[0m     : nom de la machine concernée.
 # et du répertoire à message si ces derniers n'éxistent pas
 
 if [ ! -w 'log' ];then
-    echo "Création du fichier log"
     touch 'log'
 fi
 
 if [ ! -w 'passwd' ];then
-    echo "Création du fichier passwd"
     touch 'passwd'
 fi
 
 if [ ! -w 'vlan' ];then
-    echo "Création du fichier vlan"
     touch 'vlan'
 fi
 
 if [ ! -r "Message" ];then
-  echo "Création du répertoire à message"
   mkdir 'Message'
 fi
 
@@ -599,7 +593,6 @@ if [ "$1" = "-connect" ];then
       checkpasswd $USER
       p=$?
       if [ "$p" -eq '2' ];then
-        echo "Mot de passe correct, accès au prompt"
         virtualisation $MACHINE $USER
       elif [ "$p" -eq '1' ];then
         echo "L'utilisateur n'est pas dans la base de donnée"
@@ -614,7 +607,6 @@ if [ "$1" = "-connect" ];then
 elif [ "$1" = "-admin" ];then
   checkpasswd admin
   if [ "$?" -eq '2' ];then
-    echo "Mot de passe correct"
     admin
   else
     echo "Mot de passe incorrect"
@@ -623,16 +615,4 @@ else
   echo "Préciser l'option -connect ou -admin"
 fi
 
-# /!\ /!\ /!\ remplacer les espaces qui servent de séparateur dans
-# le fichier vlan par des : 
-# fonctions concernées : users right/users del/users add/checkright
-# et sûrment d'autres
-
-# Ajout d'un -help dans les prompts ou commandes complexes
-
 # comparer les hashs plutôt que les mdp en clair sur le dossier passwd
-
-# On pourrait rajouter l'envoyeur du message
-
-# fonction users du mode admin très complexe, vérifier sa parfaite 
-# fonctionnalité
