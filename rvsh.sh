@@ -95,7 +95,6 @@ function write {
 # Sed sur fichier vlan  
   read -p "Machine de destination > " nom_machine
   dest=`echo "$nom_utilisateur@$nom_machine"`
-  echo $dest
   read -p "Saisir message > " message
   `echo "$message" > "./Message/$dest"`
 
