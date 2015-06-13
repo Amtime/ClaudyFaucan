@@ -99,6 +99,8 @@ function write {
     fi
   else
     echo "L'utilisateur n'existe pas"
+    sleep 2
+    return 1
   fi
 # Sed sur fichier vlan  
   read -p "Machine de destination > " nom_machine
