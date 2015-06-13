@@ -95,10 +95,17 @@ function write {
   read -p "Machine de destination > " nom_machine
   dest=`echo "$nom_utilisateur@$nom_machine"`
   read -p "Saisir message > " message
-  `echo "Message de $user :
+  if [ -n "`ls /Message|grep $nom_utilisateur@$nom_machine`" ]; then
+    echo "----------------------------------------------------------"
+    echo "Message de $user :
     
-  $message
-  " > "./Message/$dest"`
+    $message
+    " >> "./Message/$dest"
+  else
+    echo "Message de $user :
+    
+    $message
+    " > "./Message/$dest"
 
 # /!\ On doit faire un test préalable pour voir si la personne est connectée ##################Quelle personne ?#############
 }
@@ -393,10 +400,10 @@ function virtualisation {
   while [ "$cmd" != "exit" ]
   do
 # Vérification si aucun message n'a été reçu
-    if [ -n  "`ls './Message'|grep "^$user@$machine$"`" ];then
-      echo "`cat ./Message/$user@$machine`"
-      `rm "./Message/$user@$machine"`
-    fi
+      if [ -n  "`ls './Message'|grep "^$user@$machine$"`" ];then
+        echo "`cat ./Message/$user@$machine`"
+        `rm "./Message/$user@$machine"`
+      fi
 
     read -p "$2@$1 > " cmd arg1 arg2
     case $cmd in
