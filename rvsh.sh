@@ -313,11 +313,9 @@ function checkright {
   if [ -z "`grep "^$machine:.*$" vlan`" ];then
     return 1
   fi
-  echo $user
   if [ -z "`grep "^$user:" passwd`" ];then
     return 3
   fi
-  echo lal
   while read line 
   do
     if [ -n "`echo $line|grep "^$machine:"|grep "^.*:$user:"`" ];then
@@ -589,8 +587,8 @@ fi
 # Détection du mode invoqué 
 
 if [ "$1" = "-connect" ];then
-    read -p "Nom d'utilisateur > " $USER
-    read -p "Machine > " $MACHINE
+    read -p "Nom d'utilisateur > " USER
+    read -p "Machine > " MACHINE
     checkright $MACHINE $USER
     r=$?
     if [ "$r" -eq '2' ];then
