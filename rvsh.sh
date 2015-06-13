@@ -96,8 +96,8 @@ function write {
   dest=`echo "$nom_utilisateur@$nom_machine"`
   read -p "Saisir message > " message
   if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
-    echo "----------------------------------------------------------"
-    echo "Message de $user :
+    echo "----------------------------------------------------------
+    Message de $user :
     
     $message
     " >> "./Message/$dest"
