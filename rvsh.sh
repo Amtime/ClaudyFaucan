@@ -87,17 +87,13 @@ function write {
   local message=null
   clear
   echo "------------------ Envoi de message ------------------"
-# Afficher les utilisateurs à qui il est possible d'envoyer un message
-# Test sur les users connectés ?
   echo "Utilisateurs enregistrés à qui envoyer message :"
+  echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $1}" log`")
 # Afficher les utilisateurs depuis sed sur le fichier log
   read -p "Destinataire > " nom_utilisateur
 # On vérifie que l'utilisateur existe dans la base de donnée  
   if [ -n "`grep "^$nom_utilisateur:" passwd`" ]; then
-    echo "Utilisateur existe"
-    if [ -n "$(echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $1}" log`")" ]; then
-     echo "zizi"
-    else
+    if [ -z "$(echo "`awk "/^.* $nom_utilisateur .* connecté$/{print $1}" log`")" ]; then
       echo "L'utilisateur n'est pas connecté"
       sleep 2
       return 1
@@ -125,7 +121,7 @@ function write {
       $message
       " > "./Message/$dest"
     fi
-# /!\ On doit faire un test préalable pour voir si la personne est connectée ##################Quelle personne ?#############
+    clear
 }
 function host {
 # Admin ajoute/enlève machine au réseau  
