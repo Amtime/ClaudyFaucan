@@ -76,8 +76,14 @@ function passwd {
 function finger {
 # Renvoit des éléments complémentaires sur l'utilisateur
 # Pointe un utilisateur et donne info style nom, mail..
-    echo 1
+  local user=$1
+  if [ -n "`grep "$user" passwd`" ];then
+    echo "`grep "$user:" passwd|cut -f3 -d':'`"
+  else
+    echo "L'utilisateur n'éxiste pas"
+  fi
 }
+
 function write {
 # Envoyer un message à un utilisateur connecté sur une machine du réseau
 # write nom_utilisateur@nom_machine message
@@ -240,9 +246,53 @@ function users {
 function afinger {
 # Admin renseigne sur un utilisateur, accès avec finger
 # Donne toutes les info nom, pass, mail..
-    clear
-    echo "--------------------- Informations sur utilisateurs ---------------------"
-    echo 1
+  clear
+  local opt=null  
+  local user=null
+  echo "--------------------- Informations sur utilisateurs ---------------------"
+  echo "Indiquer supprimer (del) ou ajouter (add) :"
+  read -p "> " opt
+  if [ "$opt" = "add" -a "$opt" = "del" ];then
+      echo "Veuillez choisir entre add ou del"
+      return 1
+  fi
+  echo "Indiquer l'utilisateur concerné :"
+  read -p "> " user
+  if [ -z "`grep "$user:" passwd`" ];then
+    echo "Cet utilisateur n'existe pas"
+    return 1
+  fi
+  if [ "$opt" = "add" ];then
+    if [ -n "`grep "$user:.*:.*:" passwd`" ];then
+      local rep=null
+      echo "Cet utilisateur a déjà des informations :"
+      echo "`grep "$user:" passwd|sed "s/$user:.*:\(.*\):/\1/"`"
+      echo "Voulez vous les remplacer ? (oui/non)"
+      read -p "> " rep
+      while [ "$rep" != "oui" -a "$rep" != "non" ]
+      do
+        echo "Veuillez respecter la casse et répondre par oui ou non"
+        read -p ">" rep
+      done
+      if [ "$rep" = "non" ];then
+        echo "Retour au menu principal"
+      return 1
+      fi
+    fi
+    local info=null
+    echo "Entrez vos informations"
+    read -p "> " info
+    sed -i "s/^\($user:.*:\).*:$/\1$info:/" passwd
+    echo "Modifications des informations de $user faites"
+  fi
+  if [ "$opt" = "del" ];then
+    if [ -z "`grep "$user:.*:.*:" passwd`" ];then
+      echo "Cet utilisateur n'a pas d'informations à supprimer"
+      return 1
+    fi
+    sed -i "s/^\($user:.*:\).*:$/\1/" passwd
+    echo "Info de l'utilisateur $user supprimées"
+  fi
 }
 function right {
 # Gère la distribution des droits 
@@ -269,7 +319,7 @@ function right {
       echo "Cet utilisateur n'a pas encore le droit d'accès à $machine"
     fi
   else
-    echo "Commande erronée : users right add/del user machine"
+    echo "Commande erronée"
   fi
 }
 function add {
@@ -304,7 +354,7 @@ function del {
   local $user
   echo "Entrer le nom de l'utilisateur à supprimer :"
   read -p "> " user
-  if [ -n "`grep $user passwd`" ];then
+  if [ -n "`grep "^$user:" passwd`" ];then
     while read line 
     do
       if [ -n "`echo $line|grep "$user:"`" ];then
@@ -459,7 +509,7 @@ function virtualisation {
     help*)
       help $arg1;;
     finger*)
-      finger;;
+      finger $user;;
     exit*)
       ;;
     *)
