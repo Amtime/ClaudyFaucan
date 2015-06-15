@@ -556,11 +556,9 @@ function admin {
     echo -e "--------------------------- Réseau Virtuel RVSH -------------------
     
     Commandes admin :
-    ) Gestion des utilisateurs/droits :        \033[1musers\033[0m     
-    ) Informations sur un utilisateur :        \033[1mafinger + nom user\033[0m
-    ) Gestion des machines :                   \033[1mhost\033[0m 
-    
-    Aide avec \033[1m>help + commande\033[0m
+    Gestion des utilisateurs/droits :        \033[1musers\033[0m     
+    Informations sur un utilisateur :        \033[1mafinger + nom user\033[0m
+    Gestion des machines :                   \033[1mhost\033[0m 
     "
 
     read -p "rvsh > " cmd arg1 arg2 arg3 arg4
@@ -595,41 +593,6 @@ function admin {
 function filtre {
 
     f="`echo $1|sed 's/[^a-zA-Z0-9]//g'`"
-}
-function help {
-    case $1 in
-    host*)
-        clear
-        echo -e "---------- Gestion des machines du réseau ----------
-    
-\033[1mSyntaxe\033[0m > host arg1 arg2
-
-argument 1 \033[1madd/del\033[0m : add pour créer une machine.
-                     del pour en supprimer une.
-           
-argument 2 \033[1mnom\033[0m     : nom de la machine concernée.
-          ";;
-    users*)
-        clear;;
-    afinger*)
-        clear;;
-    who*)
-        clear;;
-    rusers*)
-        clear;;
-    rhost*)
-        clear;;
-    connect*)
-        clear;;
-    su*)
-        clear;;
-    passwd*)
-        clear;;
-    write*)
-        clear;;
-    *)
-      echo "La commande entrée n'est pas correcte.";;
-    esac
 }
 
 # DEBUT DU SCRIPT
