@@ -160,6 +160,7 @@ function host {
       echo "La machine est déjà dans le vlan"
     fi
   elif [ "$cmd" = "del" ];then
+  # Detailler les machines existantes pour choisir celle à supprimer
       echo "Machine à supprimer :"
       read -p "> " machine
     if [ -n "`grep "^$machine:.*$" vlan`" ];then
