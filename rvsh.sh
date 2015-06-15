@@ -126,6 +126,7 @@ function write {
   if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
     echo "
     ----------------------------------------------------------
+    
     Message de $envoyeur :
     
     $message
