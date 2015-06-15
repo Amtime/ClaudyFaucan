@@ -124,7 +124,8 @@ function write {
 
   read -p "Saisir message > " message
   if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
-    echo "----------------------------------------------------------
+    echo "
+    ----------------------------------------------------------
     Message de $envoyeur :
     
     $message
