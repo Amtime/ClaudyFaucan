@@ -253,7 +253,7 @@ function afinger {
   echo "--------------------- Informations sur utilisateurs ---------------------"
   echo "Indiquer supprimer (del) ou ajouter (add) :"
   read -p "> " opt
-  while [ "$opt" != "add" -o "$opt" != "del" ]
+  while [ "$opt" != "add" -a "$opt" != "del" ]
   do
       echo "Veuillez choisir entre add ou del"
       read -p "> " opt
