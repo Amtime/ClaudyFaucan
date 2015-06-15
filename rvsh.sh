@@ -253,10 +253,11 @@ function afinger {
   echo "--------------------- Informations sur utilisateurs ---------------------"
   echo "Indiquer supprimer (del) ou ajouter (add) :"
   read -p "> " opt
-  if [ "$opt" = "add" -a "$opt" = "del" ];then
+  while [ "$opt" != "add" -o "$opt" != "del" ]
+  do
       echo "Veuillez choisir entre add ou del"
-      return 1
-  fi
+      read -p "> " opt
+  done
   echo "Indiquer l'utilisateur concerné :"
   read -p "> " user
   if [ -z "`grep "$user:" passwd`" ];then
@@ -539,7 +540,7 @@ function admin {
     
     Commandes admin :
     ) Gestion des utilisateurs/droits :        \033[1musers\033[0m     
-    ) Informations sur un utilisateur :        \033[1mafinger + nom user\033[0m
+    ) Informations sur un utilisateur :        \033[1mafinger\033[0m
     ) Gestion des machines :                   \033[1mhost\033[0m 
     
     Aide avec \033[1m>help + commande\033[0m
