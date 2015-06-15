@@ -89,7 +89,7 @@ function write {
 # write nom_utilisateur@nom_machine message
   local nom_utilisateur=null
   local nom_machine=null
-  local envoyeur=$1
+  local dest=null
   local flag=1
   local message=null
   clear
@@ -102,6 +102,8 @@ function write {
   if [ -n "`grep "^$nom_utilisateur:" passwd`" ]; then
     while read line 
     do
+      echo $line
+      echo $nom_utilisateur
       if [ -n "`echo "$line"|grep " $nom_utilisateur .* connecté$"`" ];then
         flag=0
       fi
@@ -124,18 +126,16 @@ function write {
 
   read -p "Saisir message > " message
   if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
-    echo "
-    ----------------------------------------------------------
-    
-    Message de $envoyeur :
+    echo "----------------------------------------------------------
+    Message de $user :
     
     $message
-    " >> "./Message/$nom_utilisateur@$nom_machine"
+    " >> "./Message/$dest"
   else
-    echo "Message de $envoyeur :
+    echo "Message de $user :
     
     $message
-    " > "./Message/$nom_utilisateur@$nom_machine"
+    " > "./Message/$dest"
   fi
   clear
 }
@@ -175,7 +175,6 @@ function host {
 }
 function users {
 # Admin ajoute/enlève utilisateur/droits/mdp
-# La "sous commande" sera passée en premier paramètre
 # Le if redirigera vers la fonction appropriée
 # Le nom d'utilisateur et le mdp seront passé en paramètre
   clear
@@ -189,9 +188,13 @@ function users {
   
   Entrer la commande :"
   read -p "> " cmd
-  echo ""
   
   if [ "$cmd" = "pass" ];then
+    clear
+    echo "------------------ Gestion des utilisateurs : Mot de passe ------------------
+    
+    
+    "
     local user=null
     echo "Indiquer l'utilisateur concerné :"
     read -p "> " user
@@ -212,6 +215,11 @@ function users {
     fi
     
   elif [ "$cmd" = "droits" ];then
+    clear
+    echo "------------------ Gestion des utilisateurs : Droits ------------------
+    
+    
+    "
     local opt=null
     echo "Indiquer supprimer (del) ou ajouter (add) :"
     read -p "> " opt
@@ -237,8 +245,16 @@ function users {
     fi
 
   elif [ "$cmd" = "add" ];then
+    clear
+    echo "------------------ Gestion des utilisateurs : Ajout de compte ------------------
+    
+    "
     add
   elif [ "$cmd" = "del" ];then
+    clear
+    echo "------------ Gestion des utilisateurs : Suppression de compte -----------
+    
+    "
     del
   else
     echo "Argument de users invalide"
@@ -253,11 +269,10 @@ function afinger {
   echo "--------------------- Informations sur utilisateurs ---------------------"
   echo "Indiquer supprimer (del) ou ajouter (add) :"
   read -p "> " opt
-  while [ "$opt" != "add" -a "$opt" != "del" ]
-  do
+  if [ "$opt" = "add" -a "$opt" = "del" ];then
       echo "Veuillez choisir entre add ou del"
-      read -p "> " opt
-  done
+      return 1
+  fi
   echo "Indiquer l'utilisateur concerné :"
   read -p "> " user
   if [ -z "`grep "$user:" passwd`" ];then
@@ -284,6 +299,8 @@ function afinger {
     local info=null
     echo "Entrez vos informations"
     read -p "> " info
+    filtre $info
+    info=$f
     sed -i "s/^\($user:.*:\).*:$/\1$info:/" passwd
     echo "Modifications des informations de $user faites"
   fi
@@ -507,7 +524,7 @@ function virtualisation {
         echo "Syntaxe : > passwd motDePasse"
       fi;;
     write*)
-      write $user;;
+      write;;
     help*)
       help $arg1;;
     finger*)
@@ -540,7 +557,7 @@ function admin {
     
     Commandes admin :
     ) Gestion des utilisateurs/droits :        \033[1musers\033[0m     
-    ) Informations sur un utilisateur :        \033[1mafinger\033[0m
+    ) Informations sur un utilisateur :        \033[1mafinger + nom user\033[0m
     ) Gestion des machines :                   \033[1mhost\033[0m 
     
     Aide avec \033[1m>help + commande\033[0m
