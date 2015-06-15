@@ -89,7 +89,7 @@ function write {
 # write nom_utilisateur@nom_machine message
   local nom_utilisateur=null
   local nom_machine=null
-  local dest=null
+  local envoyeur=$1
   local flag=1
   local message=null
   clear
@@ -125,15 +125,15 @@ function write {
   read -p "Saisir message > " message
   if [ -n "`ls ./Message|grep $nom_utilisateur@$nom_machine`" ]; then
     echo "----------------------------------------------------------
-    Message de $user :
+    Message de $envoyeur :
     
     $message
-    " >> "./Message/$dest"
+    " >> "./Message/$nom_utilisateur@$nom_machine"
   else
-    echo "Message de $user :
+    echo "Message de $envoyeur :
     
     $message
-    " > "./Message/$dest"
+    " > "./Message/$nom_utilisateur@$nom_machine"
   fi
   clear
 }
@@ -503,7 +503,7 @@ function virtualisation {
         echo "Argument de la commande invalide"
         echo "Syntaxe : > passwd motDePasse"
       fi;;
-    write*)
+    write $user*)
       write;;
     help*)
       help $arg1;;
