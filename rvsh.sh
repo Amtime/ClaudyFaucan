@@ -503,8 +503,8 @@ function virtualisation {
         echo "Argument de la commande invalide"
         echo "Syntaxe : > passwd motDePasse"
       fi;;
-    write $user*)
-      write;;
+    write*)
+      write $user;;
     help*)
       help $arg1;;
     finger*)
