@@ -349,6 +349,8 @@ function add {
   local mdp=null
   
   read -p "Nouveau nom d'utilisateur > " user
+  filtre $user
+  user=$f
 # Vérification de l'absence de l'utilisateur
   while read line
   do
